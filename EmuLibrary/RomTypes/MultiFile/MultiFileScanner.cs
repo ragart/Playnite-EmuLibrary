@@ -135,6 +135,7 @@ namespace EmuLibrary.RomTypes.MultiFile
                             {
                                 Source = EmuLibrary.SourceName,
                                 Name = gameName,
+                                Roms = new List<GameRom>() { new GameRom(gameName, _playniteAPI.Paths.IsPortable ? rom.FullName.Replace(_playniteAPI.Paths.ApplicationPath, Playnite.SDK.ExpandableVariables.PlayniteDirectory) : rom.FullName) },
                                 IsInstalled = false,
                                 GameId = info.AsGameId(),
                                 Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },

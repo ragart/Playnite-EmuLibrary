@@ -27,6 +27,14 @@ namespace EmuLibrary.RomTypes.MultiFile
             }
         }
 
+        public string SourceFullFilePath
+        {
+            get
+            {
+                return Path.Combine(Mapping?.SourcePath ?? "", SourceFilePath);
+            }
+        }
+
         public override InstallController GetInstallController(Game game, IEmuLibrary emuLibrary) =>
             new MultiFileInstallController(game, emuLibrary);
 
