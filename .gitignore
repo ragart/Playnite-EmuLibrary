@@ -1,5 +1,7 @@
 *.pext
-**/bin/*
+**/bin/
+**/obj/
 packages/
 .vs/
 toolbox/JITProfiles/toolbox
+toolbox/Toolbox.log
