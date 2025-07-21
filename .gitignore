@@ -1,7 +1,8 @@
+.idea/
+.vs/
 *.pext
 **/bin/
 **/obj/
 packages/
-.vs/
 toolbox/JITProfiles/toolbox
 toolbox/Toolbox.log
