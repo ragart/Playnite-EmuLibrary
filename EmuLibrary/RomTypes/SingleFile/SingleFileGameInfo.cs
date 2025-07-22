@@ -1,4 +1,4 @@
-﻿using Playnite.SDK.Models;
+using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using ProtoBuf;
 using System.Collections.Generic;
@@ -11,18 +11,6 @@ namespace EmuLibrary.RomTypes.SingleFile
     {
         public override RomType RomType => RomType.SingleFile;
 
-        // Relative to Mapping's SourcePath
-        [ProtoMember(1)]
-        public string SourcePath { get; set; }  
-
-        public string SourceFullPath
-        {
-            get
-            {
-                return Path.Combine(Mapping?.SourcePath ?? "", SourcePath);
-            }
-        }
-
         public override InstallController GetInstallController(Game game, IEmuLibrary emuLibrary) =>
             new SingleFileInstallController(game, emuLibrary);
 
@@ -33,6 +21,8 @@ namespace EmuLibrary.RomTypes.SingleFile
         {
             yield return $"{nameof(SourcePath)} : {SourcePath}";
             yield return $"{nameof(SourceFullPath)}* : {SourceFullPath}";
+            yield return $"{nameof(DestinationPath)} : {DestinationPath}";
+            yield return $"{nameof(DestinationFullPath)}* : {DestinationFullPath}";
         }
 
         public override void BrowseToSource()

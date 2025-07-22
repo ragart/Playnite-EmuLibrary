@@ -1,4 +1,3 @@
-﻿using EmuLibrary.RomTypes;
 using Newtonsoft.Json;
 using Playnite.SDK;
 using Playnite.SDK.Plugins;
@@ -25,15 +24,14 @@ namespace EmuLibrary.Settings
 
         public bool ScanGamesInFullScreen { get; set; } = false;
         public bool NotifyOnInstallComplete { get; set; } = false;
-        public bool AutoRemoveUninstalledGamesMissingFromSource { get; set; } = false;
+        public bool AutoRemoveUninstalledGamesMissingFromSource { get; set; }
         public bool UseWindowsCopyDialogInDesktopMode { get; set; } = false;
         public bool UseWindowsCopyDialogInFullscreenMode { get; set; } = false;
+        public bool ShowFullPaths { get; set; } = true;
         public ObservableCollection<EmulatorMapping> Mappings { get; set; }
 
         // Hidden settings
         public int Version { get; set; }
-        public Dictionary<RomType, bool> MigratedLegacySettings { get; set; }
-
 
         // Parameterless constructor must exist if you want to use LoadPluginSettings method.
         public Settings()
@@ -47,19 +45,13 @@ namespace EmuLibrary.Settings
             Instance = this;
             _plugin = plugin;
 
-            bool forceSave = false;
+            var forceSave = false;
 
             var settings = plugin.LoadPluginSettings<Settings>();
             if (settings == null || settings.Version == 0)
             {
                 // Settings didn't load cleanly or need to be upgraded. Make sure we save in new format
                 forceSave = true;
-
-                var settingsV0 = plugin.LoadPluginSettings<SettingsV0>();
-                if (settingsV0 != null)
-                {
-                    settings = settingsV0.ToV1Settings();
-                }
             }
 
             if (settings != null)
@@ -74,10 +66,11 @@ namespace EmuLibrary.Settings
                 Mappings = new ObservableCollection<EmulatorMapping>();
             }
 
-            var mappingsWithoutId = Mappings.Where(m => m.MappingId == default);
-            if (mappingsWithoutId.Any())
+            var mappingsWithoutId = Mappings.Where(m => m.MappingId == Guid.Empty);
+            var emulatorMappings = mappingsWithoutId as EmulatorMapping[] ?? mappingsWithoutId.ToArray();
+            if (emulatorMappings.Length != 0)
             {
-                mappingsWithoutId.ForEach(m => m.MappingId = Guid.NewGuid());
+                emulatorMappings.ForEach(m => m.MappingId = Guid.NewGuid());
                 forceSave = true;
             }
 
@@ -86,37 +79,6 @@ namespace EmuLibrary.Settings
                 // We want this to default to true for new installs, but not enable automatically for existing users
                 AutoRemoveUninstalledGamesMissingFromSource = true;
             }
-
-            Enum.GetValues(typeof(RomType)).Cast<RomType>().ForEach(rt =>
-            {
-                var scanner = emuLibrary.GetScanner(rt);
-                if (scanner == null)
-                    return;
-
-                var legacyPlugin = PlayniteAPI.Addons.Plugins.FirstOrDefault(p => p.Id == scanner.LegacyPluginId);
-                if (legacyPlugin == null)
-                    return;
-
-                if (!MigratedLegacySettings.TryGetValue(rt, out bool migrated))
-                {
-                    EmulatorMapping newMapping = null;
-                    var res = emuLibrary.GetScanner(rt)?.MigrateLegacyPluginSettings(legacyPlugin, out newMapping);
-
-                    switch (res)
-                    {
-                        case LegacySettingsMigrationResult.Success:
-                            Mappings.Add(newMapping);
-                            MigratedLegacySettings.Add(rt, false);
-                            break;
-                        case LegacySettingsMigrationResult.Failure:
-                            // Nothing to do here. Let it try again next time, maybe after plugin update
-                            break;
-                        case LegacySettingsMigrationResult.Unnecessary:
-                            MigratedLegacySettings.Add(rt, false);
-                            break;
-                    }
-                }
-            });
 
             if (forceSave)
             {
@@ -143,7 +105,7 @@ namespace EmuLibrary.Settings
         {
             var mappingErrors = new List<string>();
 
-            Mappings.Where(m => m.Enabled)?.ForEach(m =>
+            Mappings.Where(m => m.Enabled).ForEach(m =>
             {
                 if (m.ImageExtensionsLower == null || !m.ImageExtensionsLower.Any())
                 {
