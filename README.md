@@ -6,7 +6,23 @@ While Playnite has had built-in support for scanning paths for installed ROMs an
 
 EmuLibrary treats one or more folders of ROMs/Disc images as a library from which you can "install" games. It can be useful if you have a large collection of emulated games and limited storage where you play them versus where you store them (HTPC vs. NAS, for example). It also is useful for keeping the list of emulated games up to date, and for being able to filter via installed/uninstalled.
 
-Disclaimer: I created this extension for my own usage, and that is still the primary focus. Because of this, many parts of it are still tailored to my personal needs and usage patterns. Despite that, I wanted to share it with others in case it is useful to them. It is still in the process of being (slowly) adapted for more general use.
+## About this fork
+
+This is a fork of the original Emulibrary extensions, created by [@psychonic](https://github.com/psychonic/Playnite-EmuLibrary).
+
+I have made some changes to the original code to adapt them to my specific needs, as the original extension did not fit my workflow. Take into account that this fork is not intended to be a general-purpose solution, but rather a personal adaptation of the original extension. However, I believe that some of the changes I have made may be useful to others, so I am sharing this fork in the hope that it can be helpful to those who need it.
+
+### Changes
+
+Added:
+
+* Showed file path even when the game is not installed.
+* Added an option to show the file name instead of the full path.
+
+Removed:
+
+* Yuzu file type.
+* Legacy plugin support.
 
 ## Setup
 
@@ -37,12 +53,4 @@ To determine which file is used as the one to tell the emulator to load, all fil
 
 ## Support
 
-To get help, check out the #extension-support channel on the Playnite Discord, linked at the top of https://playnite.link/
-
-The following files are generally useful for troubleshooting, relative to the folder where Playnite data is stored. For a portable installation, this is the same folder that Playnite is installed to. For non-portable installations, it is in AppData.
-
-* playnite.log
-* extensions.log
-* library\emulators.db
-* library\platforms.db
-* ExtensionsData\41e49490-0583-4148-94d2-940c7c74f1d9\config.json
+Since this is a personal fork, I cannot guarantee support for it. However, I will try to help if you have questions or issues. You can open an issue on the GitHub repository, and I will do my best to respond in a timely manner.

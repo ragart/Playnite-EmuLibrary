@@ -14,7 +14,7 @@
             <StackPanel x:Name="EmulatorSettingsPanel">
                 <Label Content="Emulator path mappings" FontWeight="Bold" />
                 <TextBlock HorizontalAlignment="Right" Margin="0,-16,0,0">
-                    <Hyperlink NavigateUri="https://github.com/psychonic/Playnite-EmuLibrary/blob/master/README.md#setup" RequestNavigate="Hyperlink_RequestNavigate">
+                    <Hyperlink NavigateUri="https://github.com/ragart/Playnite-EmuLibrary/blob/master/README.md#setup" RequestNavigate="Hyperlink_RequestNavigate">
                         Help🔗
                     </Hyperlink>
                 </TextBlock>
