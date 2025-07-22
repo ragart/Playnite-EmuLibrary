@@ -62,7 +62,7 @@ namespace EmuLibrary.RomTypes.MultiFile
                     var gameName = baseFileName.NormalizeGameName();
                     
                     var relativeRomPath = rom.FullName.Replace(file.FullName, "").TrimStart('\\');
-                    var gameBaseDir = baseFileName.NormalizeGameName();
+                    var gameBaseDir = file.Name;
                     
                     var info = new MultiFileGameInfo()
                     {
@@ -141,9 +141,9 @@ namespace EmuLibrary.RomTypes.MultiFile
                 {
                     MappingId = mapping.MappingId,
                     SourcePath = Path.Combine(file.Name, rom.FullName.Replace(file.FullName, "").TrimStart('\\')),
-                    SourceBaseDir = Path.Combine(file.Name),
+                    SourceBaseDir = file.Name,
                     DestinationPath = Path.Combine(file.Name, rom.FullName.Replace(file.FullName, "").TrimStart('\\')),
-                    DestinationBaseDir = Path.Combine(file.Name)
+                    DestinationBaseDir = file.Name
                 };
 
                 var baseFileName = StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name));

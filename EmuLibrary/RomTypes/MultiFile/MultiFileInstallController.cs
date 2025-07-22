@@ -19,7 +19,7 @@ namespace EmuLibrary.RomTypes.MultiFile
         {
             var info = Game.GetMultiFileGameInfo();
             var srcPath = info.SourceFullBaseDir;
-            var dstPath = info.Mapping.DestinationPathResolved;
+            var dstPath = info.DestinationFullBaseDir;
 
             _watcherToken = new CancellationTokenSource();
 
