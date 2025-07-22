@@ -6,7 +6,23 @@ While Playnite has had built-in support for scanning paths for installed ROMs an
 
 EmuLibrary treats one or more folders of ROMs/Disc images as a library from which you can "install" games. It can be useful if you have a large collection of emulated games and limited storage where you play them versus where you store them (HTPC vs. NAS, for example). It also is useful for keeping the list of emulated games up to date, and for being able to filter via installed/uninstalled.
 
-Disclaimer: I created this extension for my own usage, and that is still the primary focus. Because of this, many parts of it are still tailored to my personal needs and usage patterns. Despite that, I wanted to share it with others in case it is useful to them. It is still in the process of being (slowly) adapted for more general use.
+## About this fork
+
+This is a fork of the original Emulibrary extensions, created by [@psychonic](https://github.com/psychonic/Playnite-EmuLibrary).
+
+I have made some changes to the original code to adapt them to my specific needs, as the original extension did not fit my workflow. Take into account that this fork is not intended to be a general-purpose solution, but rather a personal adaptation of the original extension. However, I believe that some of the changes I have made may be useful to others, so I am sharing this fork in the hope that it can be helpful to those who need it.
+
+### Changes
+
+Added:
+
+* Showed file path even when the game is not installed.
+* Added an option to show the file name instead of the full path.
+
+Removed:
+
+* Yuzu file type.
+* Legacy plugin support.
 
 ## Setup
 
@@ -35,29 +51,6 @@ With the MultiFile type, each subfolder directly within the source folder is sca
 
 To determine which file is used as the one to tell the emulator to load, all files matching the configured emulator profile's supported extensions are considered. Precedence is by configured image extension list order, and then by alphabetical order. For example, if file names are the same except for `(Disc 1)` versus `(Disc 2)`, the first disc takes precedence. Similarly, if you have `.cue` in the extension list before `.m3u` (as some of the built-in profiles have at the time of writing), `.cue` would be chosen over `.m3u`, which may not be desired for multi-disc games.
 
-### Yuzu (Beta)
-
-The Yuzu type currently has a beta level quality of support. Some of it is still being reworked. As named, it is very hardcoded to Yuzu specifically, although Ryujinx support reusing most of the same logic will likely come in the future.
-
-To add a functional mapping, make sure that the selected emulator is Yuzu. (It does not need to be the built-in emulator listing for Yuzu. Custom ones, including ones that point to Yuzu EA, etc. will also work). In the source path, loose XCI/NSP/XCZ/NSZ files in the root of the path are considered.
-
-NSP/NSZ files can also be updates and DLC, rather than just games. Unlike with Tinfoil shares, files are not required to include the title id in the filename. Additionally, while destination path must point to a folder that exists, the setting is ignored. Games install into the NAND directory configured in the selected Yuzu emulator profile.
-
-When a game is installed, the latest update and any DLC from the source will also be installed to the Yuzu NAND, in that order (Game, Update if available, each available DLC). Games already installed will be imported, whether or not they exist in the source folder, and will display as installed. As expected, uninstalling a game will remove the game from Yuzu's NAND. (While Yuzu does not support XCZ or NSZ files for launching or installing to NAND, this plugin installs directly to Yuzu's NAND, without relying on the emulator's built-in install functionality)
-
-#### Known Issues
-
-* If the connection to the source folder's storage is unstable, Playnite may crash when when updating the library. This is unlikely to be able to be completely fixed until Playnite uses a newer .NET version (currently being targeted for Playnite 11). Some some mitigations are planned in the meantime, but are not yet implemented.
-* If the mapping is disabled or if EmuLibrary update is cancelled before the scan for the mapping completes, game installation for the mapping's games may result in an error message. This will be fixed in a later version of this addon.
-
 ## Support
 
-To get help, check out the #extension-support channel on the Playnite Discord, linked at the top of https://playnite.link/
-
-The following files are generally useful for troubleshooting, relative to the folder where Playnite data is stored. For a portable installation, this is the same folder that Playnite is installed to. For non-portable installations, it is in AppData.
-
-* playnite.log
-* extensions.log
-* library\emulators.db
-* library\platforms.db
-* ExtensionsData\41e49490-0583-4148-94d2-940c7c74f1d9\config.json
+Since this is a personal fork, I cannot guarantee support for it. However, I will try to help if you have questions or issues. You can open an issue on the GitHub repository, and I will do my best to respond in a timely manner.

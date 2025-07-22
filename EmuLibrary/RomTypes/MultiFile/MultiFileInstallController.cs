@@ -1,4 +1,4 @@
-﻿using EmuLibrary.Util.FileCopier;
+using EmuLibrary.Util.FileCopier;
 using Playnite.SDK;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace EmuLibrary.RomTypes.MultiFile
 {
-    class MultiFileInstallController : BaseInstallController
+    internal class MultiFileInstallController : BaseInstallController
     {
         internal MultiFileInstallController(Game game, IEmuLibrary emuLibrary) : base(game, emuLibrary)
         { }
@@ -18,9 +18,8 @@ namespace EmuLibrary.RomTypes.MultiFile
         public override void Install(InstallActionArgs args)
         {
             var info = Game.GetMultiFileGameInfo();
-
-            var dstPathBase = info.Mapping?.DestinationPathResolved ??
-                throw new Exception("Mapped emulator data cannot be found. Please try removing and re-adding.");
+            var srcPath = info.SourceFullBaseDir;
+            var dstPath = info.DestinationFullBaseDir;
 
             _watcherToken = new CancellationTokenSource();
 
@@ -28,13 +27,13 @@ namespace EmuLibrary.RomTypes.MultiFile
             {
                 try
                 {
-                    var source = new DirectoryInfo(info.SourceFullBaseDir);
-                    var destination = new DirectoryInfo(Path.Combine(dstPathBase, source.Name));
+                    var source = new DirectoryInfo(srcPath);
+                    var destination = new DirectoryInfo(dstPath);
 
                     await CreateFileCopier(source, destination).CopyAsync(_watcherToken.Token);
 
-                    var installDir = Path.Combine(dstPathBase, info.SourceBaseDir);
-                    var gamePath = Path.Combine(new string[] { dstPathBase, info.SourceFilePath });
+                    var installDir = info.DestinationFullBaseDir;
+                    var gamePath = ShowFullPaths ? info.DestinationFullPath : info.DestinationPath;
 
                     if (_emuLibrary.Playnite.ApplicationInfo.IsPortable)
                     {
@@ -42,11 +41,13 @@ namespace EmuLibrary.RomTypes.MultiFile
                         gamePath = gamePath.Replace(_emuLibrary.Playnite.Paths.ApplicationPath, ExpandableVariables.PlayniteDirectory);
                     }
 
-                    InvokeOnInstalled(new GameInstalledEventArgs(new GameInstallationData()
+                    var installationData = new GameInstallationData
                     {
                         InstallDirectory = installDir,
-                        Roms = new List<GameRom>() { new GameRom(Game.Name, gamePath) },
-                    }));
+                        Roms = new List<GameRom> { new GameRom(Game.Name, gamePath) }
+                    };
+
+                    InvokeOnInstalled(new GameInstalledEventArgs(installationData));
                 }
                 catch (Exception ex)
                 {

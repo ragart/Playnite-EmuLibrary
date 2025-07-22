@@ -1,4 +1,4 @@
-﻿using EmuLibrary.Settings;
+using EmuLibrary.Settings;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using ProtoBuf;
@@ -17,6 +17,26 @@ namespace EmuLibrary.RomTypes
 
         [ProtoMember(1)]
         public Guid MappingId { get; set; }
+        
+        // Relative to Mapping's SourcePath
+        [ProtoMember(2)]
+        public string SourcePath { get; set; }
+        public string SourceFullPath => Path.Combine(Mapping?.SourcePath ?? "", SourcePath);
+
+        // Relative to Mapping's SourcePath
+        [ProtoMember(3)]
+        public string SourceBaseDir { get; set; }
+        public string SourceFullBaseDir => Path.Combine(Mapping?.SourcePath ?? "", SourceBaseDir);
+
+        // Relative to Mapping's DestinationPath
+        [ProtoMember(4)]
+        public string DestinationPath { get; set; }
+        public string DestinationFullPath => Path.Combine(Mapping?.DestinationPathResolved ?? "", DestinationPath);
+        
+        // Relative to Mapping's DestinationPath
+        [ProtoMember(5)]
+        public string DestinationBaseDir { get; set; }
+        public string DestinationFullBaseDir => Path.Combine(Mapping?.DestinationPathResolved ?? "", DestinationBaseDir);
 
         public EmulatorMapping Mapping
         {
@@ -31,7 +51,7 @@ namespace EmuLibrary.RomTypes
             using (var ms = new MemoryStream())
             {
                 Serializer.Serialize(ms, this);
-                return string.Format("!0{0}", Convert.ToBase64String(ms.ToArray()));
+                return $"!0{Convert.ToBase64String(ms.ToArray())}";
             }
         }
         
@@ -52,9 +72,9 @@ namespace EmuLibrary.RomTypes
         {
             Debug.Assert(gameId != null, "GameId is null");
             Debug.Assert(gameId.Length > 0, "GameId is empty");
-            Debug.Assert(gameId[0] == '!', "GameId is not in expected format. (Legacy game that didn't get converted?)");
+            Debug.Assert(gameId[0] == '!', "GameId is not in expected format");
             Debug.Assert(gameId.Length > 2, $"GameId is too short ({gameId.Length} chars)");
-            Debug.Assert(gameId[1] == '0', $"GameId is marked as being serialized ProtoBuf, but of invalid version. (Expected 0, got {gameId[1]})");
+            Debug.Assert(gameId[1] == '0', $"GameId is marked as being serialized ProtoBuf, but of invalid version (expected 0, got {gameId[1]})");
 
             return Serializer.Deserialize<T>(Convert.FromBase64String(gameId.Substring(2)).AsSpan());
         }

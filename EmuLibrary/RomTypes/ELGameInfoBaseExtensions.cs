@@ -1,15 +1,17 @@
-﻿using EmuLibrary.RomTypes;
 using Playnite.SDK.Models;
 
-internal static class ELGameInfoBaseExtensions
+namespace EmuLibrary.RomTypes
 {
-    static public ELGameInfo GetELGameInfo(this Game game)
+    internal static class ELGameInfoBaseExtensions
     {
-        return ELGameInfo.FromGame<ELGameInfo>(game);
-    }
+        public static ELGameInfo GetELGameInfo(this Game game)
+        {
+            return ELGameInfo.FromGame<ELGameInfo>(game);
+        }
 
-    static public ELGameInfo GetELGameInfo(this GameMetadata game)
-    {
-        return ELGameInfo.FromGameMetadata<ELGameInfo>(game);
+        public static ELGameInfo GetELGameInfo(this GameMetadata game)
+        {
+            return ELGameInfo.FromGameMetadata<ELGameInfo>(game);
+        }
     }
 }
