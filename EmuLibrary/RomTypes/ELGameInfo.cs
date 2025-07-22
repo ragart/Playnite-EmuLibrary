@@ -52,9 +52,9 @@ namespace EmuLibrary.RomTypes
         {
             Debug.Assert(gameId != null, "GameId is null");
             Debug.Assert(gameId.Length > 0, "GameId is empty");
-            Debug.Assert(gameId[0] == '!', "GameId is not in expected format. (Legacy game that didn't get converted?)");
+            Debug.Assert(gameId[0] == '!', "GameId is not in expected format");
             Debug.Assert(gameId.Length > 2, $"GameId is too short ({gameId.Length} chars)");
-            Debug.Assert(gameId[1] == '0', $"GameId is marked as being serialized ProtoBuf, but of invalid version. (Expected 0, got {gameId[1]})");
+            Debug.Assert(gameId[1] == '0', $"GameId is marked as being serialized ProtoBuf, but of invalid version (expected 0, got {gameId[1]})");
 
             return Serializer.Deserialize<T>(Convert.FromBase64String(gameId.Substring(2)).AsSpan());
         }

@@ -74,35 +74,6 @@ namespace EmuLibrary
             }
         }
 
-        public override void OnApplicationStarted(OnApplicationStartedEventArgs args)
-        {
-            base.OnApplicationStarted(args);
-
-            Settings.Mappings.ForEach(mapping =>
-            {
-                _scanners.Values.ForEach(scanner =>
-                {
-                    var oldGameIdFormat = PlayniteApi.Database.Games.Where(game => game.PluginId == scanner.LegacyPluginId && !game.GameId.StartsWith("!"));
-                    if (oldGameIdFormat.Any())
-                    {
-                        Logger.Info($"Updating {oldGameIdFormat.Count()} games to new game id format for mapping {mapping.MappingId} ({mapping.Emulator.Name}/{mapping.EmulatorProfile.Name}/{mapping.SourcePath}).");
-                        using (Playnite.Database.BufferedUpdate())
-                        {
-                            oldGameIdFormat.ForEach(game =>
-                            {
-                                if (scanner.TryGetGameInfoBaseFromLegacyGameId(game, mapping, out var gameInfo))
-                                {
-                                    game.GameId = gameInfo.AsGameId();
-                                    game.PluginId = PluginId;
-                                    PlayniteApi.Database.Games.Update(game);
-                                }
-                            });
-                        }
-                    }
-                });
-            });
-        }
-
         public override IEnumerable<GameMetadata> GetGames(LibraryGetGamesArgs args)
         {
             if (Playnite.ApplicationInfo.Mode == ApplicationMode.Fullscreen && !Settings.ScanGamesInFullScreen)

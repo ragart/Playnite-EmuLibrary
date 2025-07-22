@@ -22,7 +22,6 @@ namespace EmuLibrary.RomTypes.SingleFile
         static private readonly Regex s_discXpattern = new Regex(@"\((?:Disc|Disk) \d+", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         public override RomType RomType => RomType.SingleFile;
-        public override Guid LegacyPluginId => EmuLibrary.PluginId;
 
         public SingleFileScanner(IEmuLibrary emuLibrary) : base(emuLibrary)
         {
@@ -146,60 +145,6 @@ namespace EmuLibrary.RomTypes.SingleFile
                 }
             }
             #endregion
-        }
-
-        public override bool TryGetGameInfoBaseFromLegacyGameId(Game game, EmulatorMapping mapping, out ELGameInfo gameInfo)
-        {
-            // OLD /////////////////////////////////////////////////
-            // GameId format - segments divided by '|'.
-            // 0 - Was flag string, with only flag ever being * for multi-file. Now is base game path if multifile
-            // 1 - Full Rom file source path
-            // If no segments present (no '|'), then entire value is Full Rom file source path (1)
-
-            if (!game.GameId.Contains("."))
-            {
-                gameInfo = null;
-                return false;
-            }
-
-            var playAction = game.GameActions.Where(ga => ga.IsPlayAction).First();
-            if (mapping.RomType != RomType.SingleFile)
-            {
-                gameInfo = null;
-                return false;
-            }
-
-            if (game.GameId.Contains("|"))
-            {
-                // TODO: finish this up for non-PB cases, using existing ELPathInfo code as a base
-                var parts = game.GameId.Split('|');
-
-                Debug.Assert(parts.Length == 2, $"GameId is not in expected format (expected 2 parts, got {parts.Length})");
-
-                if (string.IsNullOrEmpty(parts[0]))
-                {
-                    gameInfo = new RomTypes.SingleFile.SingleFileGameInfo()
-                    {
-                        MappingId = mapping.MappingId,
-                        SourcePath = parts[1].Replace(mapping.SourcePath, "").TrimStart('\\'),
-                    };
-                    return true;
-                }
-                else
-                {
-                    gameInfo = null;
-                    return false;
-                }
-            }
-            else
-            {
-                gameInfo = new RomTypes.SingleFile.SingleFileGameInfo()
-                {
-                    MappingId = mapping.MappingId,
-                    SourcePath = game.GameId,
-                };
-                return true;
-            }
         }
 
         public override IEnumerable<Game> GetUninstalledGamesMissingSourceFiles(CancellationToken ct)

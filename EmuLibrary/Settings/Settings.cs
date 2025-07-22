@@ -32,8 +32,6 @@ namespace EmuLibrary.Settings
 
         // Hidden settings
         public int Version { get; set; }
-        public Dictionary<RomType, bool> MigratedLegacySettings { get; set; }
-
 
         // Parameterless constructor must exist if you want to use LoadPluginSettings method.
         public Settings()
@@ -86,37 +84,6 @@ namespace EmuLibrary.Settings
                 // We want this to default to true for new installs, but not enable automatically for existing users
                 AutoRemoveUninstalledGamesMissingFromSource = true;
             }
-
-            Enum.GetValues(typeof(RomType)).Cast<RomType>().ForEach(rt =>
-            {
-                var scanner = emuLibrary.GetScanner(rt);
-                if (scanner == null)
-                    return;
-
-                var legacyPlugin = PlayniteAPI.Addons.Plugins.FirstOrDefault(p => p.Id == scanner.LegacyPluginId);
-                if (legacyPlugin == null)
-                    return;
-
-                if (!MigratedLegacySettings.TryGetValue(rt, out bool migrated))
-                {
-                    EmulatorMapping newMapping = null;
-                    var res = emuLibrary.GetScanner(rt)?.MigrateLegacyPluginSettings(legacyPlugin, out newMapping);
-
-                    switch (res)
-                    {
-                        case LegacySettingsMigrationResult.Success:
-                            Mappings.Add(newMapping);
-                            MigratedLegacySettings.Add(rt, false);
-                            break;
-                        case LegacySettingsMigrationResult.Failure:
-                            // Nothing to do here. Let it try again next time, maybe after plugin update
-                            break;
-                        case LegacySettingsMigrationResult.Unnecessary:
-                            MigratedLegacySettings.Add(rt, false);
-                            break;
-                    }
-                }
-            });
 
             if (forceSave)
             {
