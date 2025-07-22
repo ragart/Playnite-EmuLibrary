@@ -11,30 +11,6 @@ namespace EmuLibrary.RomTypes.MultiFile
     {
         public override RomType RomType => RomType.MultiFile;
 
-        // Relative to Mapping's SourcePath
-        [ProtoMember(1)]
-        public string SourceFilePath { get; set; }
-
-        // Relative to Mapping's SourcePath
-        [ProtoMember(2)]
-        public string SourceBaseDir { get; set; }
-
-        public string SourceFullBaseDir
-        {
-            get
-            {
-                return Path.Combine(Mapping?.SourcePath ?? "", SourceBaseDir);
-            }
-        }
-
-        public string SourceFullFilePath
-        {
-            get
-            {
-                return Path.Combine(Mapping?.SourcePath ?? "", SourceFilePath);
-            }
-        }
-
         public override InstallController GetInstallController(Game game, IEmuLibrary emuLibrary) =>
             new MultiFileInstallController(game, emuLibrary);
 
@@ -43,9 +19,12 @@ namespace EmuLibrary.RomTypes.MultiFile
 
         protected override IEnumerable<string> GetDescriptionLines()
         {
-            yield return $"{nameof(SourceFilePath)}: {SourceFilePath}";
+            yield return $"{nameof(SourcePath)}: {SourcePath}";
             yield return $"{nameof(SourceBaseDir)}: {SourceBaseDir}";
             yield return $"{nameof(SourceFullBaseDir)}*: {SourceFullBaseDir}";
+            yield return $"{nameof(DestinationPath)}: {DestinationPath}";
+            yield return $"{nameof(DestinationBaseDir)}: {DestinationBaseDir}";
+            yield return $"{nameof(DestinationFullBaseDir)}*: {DestinationFullBaseDir}";
         }
 
         public override void BrowseToSource()

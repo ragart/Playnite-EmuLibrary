@@ -1,5 +1,4 @@
-﻿using EmuLibrary.RomTypes;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Playnite.SDK;
 using Playnite.SDK.Plugins;
 using System;
@@ -25,9 +24,10 @@ namespace EmuLibrary.Settings
 
         public bool ScanGamesInFullScreen { get; set; } = false;
         public bool NotifyOnInstallComplete { get; set; } = false;
-        public bool AutoRemoveUninstalledGamesMissingFromSource { get; set; } = false;
+        public bool AutoRemoveUninstalledGamesMissingFromSource { get; set; }
         public bool UseWindowsCopyDialogInDesktopMode { get; set; } = false;
         public bool UseWindowsCopyDialogInFullscreenMode { get; set; } = false;
+        public bool ShowFullPaths { get; set; } = true;
         public ObservableCollection<EmulatorMapping> Mappings { get; set; }
 
         // Hidden settings
@@ -45,19 +45,13 @@ namespace EmuLibrary.Settings
             Instance = this;
             _plugin = plugin;
 
-            bool forceSave = false;
+            var forceSave = false;
 
             var settings = plugin.LoadPluginSettings<Settings>();
             if (settings == null || settings.Version == 0)
             {
                 // Settings didn't load cleanly or need to be upgraded. Make sure we save in new format
                 forceSave = true;
-
-                var settingsV0 = plugin.LoadPluginSettings<SettingsV0>();
-                if (settingsV0 != null)
-                {
-                    settings = settingsV0.ToV1Settings();
-                }
             }
 
             if (settings != null)
@@ -72,10 +66,11 @@ namespace EmuLibrary.Settings
                 Mappings = new ObservableCollection<EmulatorMapping>();
             }
 
-            var mappingsWithoutId = Mappings.Where(m => m.MappingId == default);
-            if (mappingsWithoutId.Any())
+            var mappingsWithoutId = Mappings.Where(m => m.MappingId == Guid.Empty);
+            var emulatorMappings = mappingsWithoutId as EmulatorMapping[] ?? mappingsWithoutId.ToArray();
+            if (emulatorMappings.Length != 0)
             {
-                mappingsWithoutId.ForEach(m => m.MappingId = Guid.NewGuid());
+                emulatorMappings.ForEach(m => m.MappingId = Guid.NewGuid());
                 forceSave = true;
             }
 
@@ -110,7 +105,7 @@ namespace EmuLibrary.Settings
         {
             var mappingErrors = new List<string>();
 
-            Mappings.Where(m => m.Enabled)?.ForEach(m =>
+            Mappings.Where(m => m.Enabled).ForEach(m =>
             {
                 if (m.ImageExtensionsLower == null || !m.ImageExtensionsLower.Any())
                 {
