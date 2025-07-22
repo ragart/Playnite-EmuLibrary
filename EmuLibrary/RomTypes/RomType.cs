@@ -1,4 +1,4 @@
-﻿namespace EmuLibrary.RomTypes
+namespace EmuLibrary.RomTypes
 {
     // Don't renumber these, ever. Saved mappings and ELGameInfo field numbers rely on them being static
     public enum RomType

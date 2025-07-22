@@ -1,4 +1,4 @@
-﻿using EmuLibrary.RomTypes;
+using EmuLibrary.RomTypes;
 using EmuLibrary.Settings;
 using Playnite.SDK;
 using Playnite.SDK.Events;

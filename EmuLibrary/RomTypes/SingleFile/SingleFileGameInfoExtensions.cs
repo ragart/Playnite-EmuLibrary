@@ -1,4 +1,4 @@
-﻿using Playnite.SDK.Models;
+using Playnite.SDK.Models;
 
 namespace EmuLibrary.RomTypes.SingleFile
 {
