@@ -8,5 +8,8 @@ namespace EmuLibrary.RomTypes
 
         [RomTypeInfo(typeof(MultiFile.MultiFileGameInfo), typeof(MultiFile.MultiFileScanner))]
         MultiFile = 1,
+
+        [RomTypeInfo(typeof(M3uPlaylist.M3uPlaylistGameInfo), typeof(M3uPlaylist.M3uPlaylistScanner))]
+        M3uPlaylist = 2,
     }
 }
