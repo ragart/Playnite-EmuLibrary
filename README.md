@@ -18,6 +18,7 @@ Added:
 
 * Showed file path even when the game is not installed.
 * Added an option to show the file name instead of the full path.
+* Added a new file type that uses M3U files to determine the files to copy for multi-file games in subfolders.
 
 Removed:
 
@@ -50,6 +51,10 @@ SingleFile is the simplest type of ROM supported. This is for source folders in 
 With the MultiFile type, each subfolder directly within the source folder is scanned as a potential "ROM". This is for games that have multiple loose files. (Ex. one or more .bin/.cue, with optional .m3u). When installing a MultiFile game, the whole folder is copied. 
 
 To determine which file is used as the one to tell the emulator to load, all files matching the configured emulator profile's supported extensions are considered. Precedence is by configured image extension list order, and then by alphabetical order. For example, if file names are the same except for `(Disc 1)` versus `(Disc 2)`, the first disc takes precedence. Similarly, if you have `.cue` in the extension list before `.m3u` (as some of the built-in profiles have at the time of writing), `.cue` would be chosen over `.m3u`, which may not be desired for multi-disc games.
+
+### M3uPlaylist
+
+M3uPlaylist is a special type of MultiFile ROM that uses M3U files to determine the files to copy for multi-file games in subfolders. When a M3U file is present, it will be used to identify the main game files, allowing for more complex folder structures and file arrangements.
 
 ## Support
 

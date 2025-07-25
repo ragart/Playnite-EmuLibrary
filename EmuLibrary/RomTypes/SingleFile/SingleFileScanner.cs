@@ -7,8 +7,8 @@ using Playnite.SDK.Plugins;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Abstractions;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace EmuLibrary.RomTypes.SingleFile
@@ -16,9 +16,6 @@ namespace EmuLibrary.RomTypes.SingleFile
     internal class SingleFileScanner : RomTypeScanner
     {
         private readonly IPlayniteAPI _playniteAPI;
-
-        // Hack to exclude anything past disc one for games we're not treating as multi-file / m3u but have multiple discs :|
-        private static readonly Regex s_discXpattern = new Regex(@"\((?:Disc|Disk) \d+", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         public override RomType RomType => RomType.SingleFile;
 
@@ -36,144 +33,107 @@ namespace EmuLibrary.RomTypes.SingleFile
             var extensionsLower = imageExtensionsLower as string[] ?? imageExtensionsLower.ToArray();
             var srcPath = mapping.SourcePath;
             var dstPath = mapping.DestinationPathResolved;
-            SafeFileEnumerator fileEnumerator;
+            
+            var installedFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var srcFileEnumerator = new SafeFileEnumerator(srcPath, "*.*", SearchOption.TopDirectoryOnly);
+            var dstFileEnumerator = new SafeFileEnumerator(dstPath, "*.*", SearchOption.TopDirectoryOnly);
 
-            #region Import "installed" games
-                if (Directory.Exists(dstPath))
-                {
-                    fileEnumerator = new SafeFileEnumerator(dstPath, "*.*", SearchOption.TopDirectoryOnly);
-
-                    foreach (var file in fileEnumerator)
-                    {
-                        if (args.CancelToken.IsCancellationRequested)
-                            yield break;
-
-                        foreach (var extension in extensionsLower)
-                        {
-                            if (args.CancelToken.IsCancellationRequested)
-                                yield break;
-
-                            if (!HasMatchingExtension(file, extension) || s_discXpattern.IsMatch(file.Name))
-                                continue;
-
-                            var baseFileName = StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name));
-                            var gameName = baseFileName.NormalizeGameName();
-                            var info = new SingleFileGameInfo()
-                            {
-                                MappingId = mapping.MappingId,
-                                SourcePath = file.Name,
-                                DestinationPath = file.Name,
-                                DestinationBaseDir = Path.GetFileName(dstPath)
-
-                            };
-
-                            var romPath = _playniteAPI.Paths.IsPortable
-                                ? file.FullName.Replace(
-                                    _playniteAPI.Paths.ApplicationPath,
-                                    ExpandableVariables.PlayniteDirectory)
-                                : file.FullName;
-
-                            yield return new GameMetadata()
-                            {
-                                Source = EmuLibrary.SourceName,
-                                Name = gameName,
-                                Roms = new List<GameRom>() { new GameRom(
-                                    gameName,
-                                    Settings.Settings.Instance.ShowFullPaths
-                                        ? romPath
-                                        : file.Name
-                                ) },
-                                InstallDirectory = _playniteAPI.Paths.IsPortable
-                                    ? dstPath.Replace(_playniteAPI.Paths.ApplicationPath, ExpandableVariables.PlayniteDirectory)
-                                    : dstPath,
-                                IsInstalled = true,
-                                GameId = info.AsGameId(),
-                                Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
-                                Regions = FileNameUtils.GuessRegionsFromRomName(baseFileName).Select(r => new MetadataNameProperty(r)).ToHashSet<MetadataProperty>(),
-                                InstallSize = (ulong)new FileInfo(file.FullName).Length,
-                                GameActions = new List<GameAction>() { new GameAction()
-                                {
-                                    Name = $"Play in {mapping.Emulator.Name}",
-                                    Type = GameActionType.Emulator,
-                                    EmulatorId = mapping.EmulatorId,
-                                    EmulatorProfileId = mapping.EmulatorProfileId,
-                                    IsPlayAction = true,
-                                } }
-                            };
-                        }
-                    }
-                }
-            #endregion
-
-            #region Import "uninstalled" games
-
-            if (!Directory.Exists(srcPath))
-                yield break;
-
-            fileEnumerator = new SafeFileEnumerator(srcPath, "*.*", SearchOption.TopDirectoryOnly);
-
-            foreach (var file in fileEnumerator)
+            if (Directory.Exists(dstPath))
             {
-                if (args.CancelToken.IsCancellationRequested)
-                    yield break;
+                foreach (var installedFile in dstFileEnumerator)
+                {
+                    installedFileNames.Add(installedFile.Name);
+                }
+            }
 
-                foreach (var extension in extensionsLower)
+            // Import installed games
+            if (Directory.Exists(dstPath))
+            {
+                foreach (var file in dstFileEnumerator)
                 {
                     if (args.CancelToken.IsCancellationRequested)
                         yield break;
 
-                    if (HasMatchingExtension(file, extension) && !s_discXpattern.IsMatch(file.Name))
-                    {
-                        var equivalentInstalledPath = Path.Combine(dstPath, file.Name);
-                        if (File.Exists(equivalentInstalledPath))
-                        {
-                            continue;
-                        }
+                    if (!extensionsLower.Any(ext => HasMatchingExtension(file, ext)))
+                        continue;
 
-                        var info = new SingleFileGameInfo()
-                        {
-                            MappingId = mapping.MappingId,
-                            SourcePath = file.Name,
-                            DestinationPath = file.Name,
-                            DestinationBaseDir = Path.GetFileName(dstPath)
-                        };
-
-                        var baseFileName = StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name));
-                        var gameName = baseFileName.NormalizeGameName();
-
-                        var romPath = _playniteAPI.Paths.IsPortable
-                            ? file.FullName.Replace(
-                                _playniteAPI.Paths.ApplicationPath,
-                                ExpandableVariables.PlayniteDirectory)
-                            : file.FullName;
-
-                        yield return new GameMetadata()
-                        {
-                            Source = EmuLibrary.SourceName,
-                            Name = gameName,
-                            Roms = new List<GameRom>() { new GameRom(
-                                gameName,
-                                Settings.Settings.Instance.ShowFullPaths
-                                    ? romPath
-                                    : file.Name) },
-                            IsInstalled = false,
-                            GameId = info.AsGameId(),
-                            Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
-                            Regions = FileNameUtils.GuessRegionsFromRomName(baseFileName).Select(r => new MetadataNameProperty(r)).ToHashSet<MetadataProperty>(),
-                            InstallSize = (ulong)new FileInfo(file.FullName).Length,
-                            GameActions = new List<GameAction>() { new GameAction()
-                            {
-                                Name = $"Play in {mapping.Emulator.Name}",
-                                Type = GameActionType.Emulator,
-                                EmulatorId = mapping.EmulatorId,
-                                EmulatorProfileId = mapping.EmulatorProfileId,
-                                IsPlayAction = true,
-                            } }
-                        };
-                    }
+                    yield return GetMetadata(file, mapping, true);
                 }
             }
-            #endregion
+
+            // Import uninstalled games
+            if (Directory.Exists(srcPath))
+            {
+                foreach (var file in srcFileEnumerator)
+                {
+                    if (args.CancelToken.IsCancellationRequested)
+                        yield break;
+
+                    if (!extensionsLower.Any(ext => HasMatchingExtension(file, ext)))
+                        continue;
+
+                    if (installedFileNames.Contains(file.Name))
+                        continue;
+
+                    yield return GetMetadata(file, mapping, false);
+                }
+            }
+        }
+
+        public override GameMetadata GetMetadata(FileSystemInfoBase file, EmulatorMapping mapping, bool installed)
+        {
+            var fileInfo = new FileInfo(file.FullName);
+
+            var info = new SingleFileGameInfo()
+            {
+                MappingId = mapping.MappingId,
+                SourcePath = file.Name,
+                SourceBaseDir = Path.GetFileName(mapping.SourcePath),
+                DestinationPath = file.Name,
+                DestinationBaseDir = Path.GetFileName(mapping.DestinationPathResolved)
+            };
+
+            var baseFileName = StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name));
+            var gameName = baseFileName.NormalizeGameName();
+
+            var romPath = _playniteAPI.Paths.IsPortable
+                ? file.FullName.Replace(
+                    _playniteAPI.Paths.ApplicationPath,
+                    ExpandableVariables.PlayniteDirectory)
+                : file.FullName;
+
+            var metadata = new GameMetadata()
+            {
+                Source = EmuLibrary.SourceName,
+                Name = gameName,
+                Roms = new List<GameRom>() {new GameRom(
+                    gameName,
+                    Settings.Settings.Instance.ShowFullPaths
+                        ? romPath
+                        : file.Name)},
+                IsInstalled = installed,
+                GameId = info.AsGameId(),
+                Platforms = new HashSet<MetadataProperty>() { new MetadataNameProperty(mapping.Platform.Name) },
+                Regions = FileNameUtils.GuessRegionsFromRomName(baseFileName).Select(r => new MetadataNameProperty(r)).ToHashSet<MetadataProperty>(),
+                InstallSize = null,
+                GameActions = new List<GameAction>() { new GameAction()
+                {
+                    Name = $"Play in {mapping.Emulator.Name}",
+                    Type = GameActionType.Emulator,
+                    EmulatorId = mapping.EmulatorId,
+                    EmulatorProfileId = mapping.EmulatorProfileId,
+                    IsPlayAction = true,
+                } }
+            };
+
+            if (installed)
+                metadata.InstallDirectory = _playniteAPI.Paths.IsPortable
+                    ? fileInfo.Directory?.FullName.Replace(
+                        _playniteAPI.Paths.ApplicationPath,
+                        ExpandableVariables.PlayniteDirectory)
+                    : fileInfo.Directory?.FullName;
+
+            return metadata;
         }
 
         public override IEnumerable<Game> GetUninstalledGamesMissingSourceFiles(CancellationToken ct)
