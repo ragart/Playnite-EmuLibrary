@@ -28,24 +28,24 @@ namespace EmuLibrary.RomTypes.M3uPlaylist
             {
                 try
                 {
-                    var sourceM3u = new FileInfo(srcPath);
-                    var destinationM3u = new FileInfo(dstPath);
+                    var source = new FileInfo(srcPath);
+                    var destination = new FileInfo(dstPath);
 
-                    var referencedDirectories = File.ReadAllLines(sourceM3u.FullName)
+                    var referencedDirectories = File.ReadAllLines(source.FullName)
                         .Select(line => Path.GetDirectoryName(line))
                         .Distinct(StringComparer.OrdinalIgnoreCase)
-                        .Select(dir => new DirectoryInfo(Path.Combine(sourceM3u.DirectoryName, dir)))
+                        .Select(dir => new DirectoryInfo(Path.Combine(source.DirectoryName ?? string.Empty, dir)))
                         .ToList();
 
                     var fileCopiers = new List<IFileCopier>();
 
                     foreach (var dir in referencedDirectories)
                     {
-                        var destinationDir = new DirectoryInfo(Path.Combine(destinationM3u.DirectoryName, dir.Name));
+                        var destinationDir = new DirectoryInfo(Path.Combine(destination.DirectoryName ?? string.Empty, dir.Name));
                         fileCopiers.Add(CreateFileCopier(dir, destinationDir));
                     }
 
-                    fileCopiers.Add(CreateFileCopier(sourceM3u, destinationM3u.Directory));
+                    fileCopiers.Add(CreateFileCopier(source, destination.Directory));
 
                     foreach (var copier in fileCopiers)
                     {
