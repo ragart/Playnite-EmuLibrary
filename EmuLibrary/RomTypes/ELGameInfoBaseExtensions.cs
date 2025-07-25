@@ -13,10 +13,5 @@ namespace EmuLibrary.RomTypes
         {
             return ELGameInfo.FromGameMetadata<ELGameInfo>(game);
         }
-
-        public static M3uPlaylist.M3uPlaylistGameInfo GetM3uPlaylistGameInfo(this Game game)
-        {
-            return ELGameInfo.FromGame<M3uPlaylist.M3uPlaylistGameInfo>(game);
-        }
     }
 }
