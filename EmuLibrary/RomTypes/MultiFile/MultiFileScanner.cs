@@ -159,8 +159,13 @@ namespace EmuLibrary.RomTypes.MultiFile
                 if (info.RomType != RomType.MultiFile)
                     return false;
 
-                return !Directory.Exists((info as MultiFileGameInfo)?.SourceFullBaseDir);
+                var mapping = info.Mapping;
+                if (mapping == null)
+                    return false;
+
+                return !Directory.Exists(Path.Combine(mapping.SourcePath, (info as MultiFileGameInfo).SourceBaseDir));
             });
         }
     }
 }
+
