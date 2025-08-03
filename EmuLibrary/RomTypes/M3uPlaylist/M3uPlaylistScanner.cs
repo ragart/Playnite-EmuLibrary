@@ -148,8 +148,13 @@ namespace EmuLibrary.RomTypes.M3uPlaylist
                 if (info.RomType != RomType.M3uPlaylist)
                     return false;
 
-                return !File.Exists((info as M3uPlaylistGameInfo)?.SourceFullPath);
+                var mapping = info.Mapping;
+                if (mapping == null)
+                    return false;
+
+                return !File.Exists(Path.Combine(mapping.SourcePath, info.SourcePath));
             });
         }
     }
 }
+
