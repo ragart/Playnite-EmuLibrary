@@ -208,13 +208,13 @@ namespace EmuLibrary
 
         private void RemoveSuperUninstalledGames(bool promptUser, CancellationToken ct)
         {
-            var toRemove = _scanners.Values.SelectMany(s => s.GetUninstalledGamesMissingSourceFiles(ct));
-            if (toRemove.Any())
+            var toRemove = _scanners.Values.SelectMany(s => s.GetUninstalledGamesMissingSourceFiles(ct)).ToList();
+            if (toRemove.Count != 0)
             {
                 System.Windows.MessageBoxResult res;
                 if (promptUser)
                 {
-                    res = PlayniteApi.Dialogs.ShowMessage($"Delete {toRemove.Count()} library entries?\n\n(This may take a while, during while Playnite will seem frozen.)", "Confirm deletion", System.Windows.MessageBoxButton.YesNo);
+                    res = Playnite.Dialogs.ShowMessage($"Delete {toRemove.Count()} library entries?\n\n(This may take a while, during while Playnite will seem frozen.)", "Confirm deletion", System.Windows.MessageBoxButton.YesNo);
                 }
                 else
                 {
@@ -223,12 +223,12 @@ namespace EmuLibrary
 
                 if (res == System.Windows.MessageBoxResult.Yes)
                 {
-                    PlayniteApi.Database.Games.Remove(toRemove);
+                    Playnite.Database.Games.Remove(toRemove);
                 }
             }
             else if (promptUser)
             {
-                PlayniteApi.Dialogs.ShowMessage("Nothing to do.");
+                Playnite.Dialogs.ShowMessage("Nothing to do.");
             }
         }
     }

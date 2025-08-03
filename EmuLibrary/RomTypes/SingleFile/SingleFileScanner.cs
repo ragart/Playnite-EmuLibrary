@@ -148,8 +148,13 @@ namespace EmuLibrary.RomTypes.SingleFile
                 if (info.RomType != RomType.SingleFile)
                     return false;
 
-                return !File.Exists((info as SingleFileGameInfo)?.SourceFullPath);
+                var mapping = info.Mapping;
+                if (mapping == null)
+                    return false;
+
+                return !File.Exists(Path.Combine(mapping.SourcePath, info.SourcePath));
             });
         }
     }
 }
+
