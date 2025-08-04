@@ -13,6 +13,11 @@ namespace EmuLibrary.RomTypes.M3uPlaylist
         public M3uPlaylistUninstallController(Game game, IEmuLibrary emuLibrary) : base(game, emuLibrary)
         { }
 
+        protected override string GetSourcePath()
+        {
+            return Game.GetM3uPlaylistGameInfo()?.SourceFullPath;
+        }
+
         public override void Uninstall(UninstallActionArgs args)
         {
             var info = Game.GetM3uPlaylistGameInfo();
@@ -39,7 +44,7 @@ namespace EmuLibrary.RomTypes.M3uPlaylist
                 installedM3u.Delete();
             }
 
-            InvokeOnUninstalled(new GameUninstalledEventArgs());
+            OnUninstalled();
         }
     }
 }

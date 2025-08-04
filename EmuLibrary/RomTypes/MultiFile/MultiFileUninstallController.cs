@@ -11,6 +11,11 @@ namespace EmuLibrary.RomTypes.MultiFile
         internal MultiFileUninstallController(Game game, IEmuLibrary emuLibrary) : base(game, emuLibrary)
         { }
 
+        protected override string GetSourcePath()
+        {
+            return Game.GetMultiFileGameInfo()?.SourceFullBaseDir;
+        }
+
         public override void Uninstall(UninstallActionArgs args)
         {
             var info = Game.GetMultiFileGameInfo();
@@ -33,7 +38,8 @@ namespace EmuLibrary.RomTypes.MultiFile
             }
             Game.Roms = new System.Collections.ObjectModel.ObservableCollection<GameRom> { new GameRom(Game.Name, srcPath) };
 
-            InvokeOnUninstalled(new GameUninstalledEventArgs());
+            OnUninstalled();
         }
     }
 }
+
