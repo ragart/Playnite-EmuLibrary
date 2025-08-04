@@ -17,6 +17,11 @@ namespace EmuLibrary.RomTypes.MultiFile
         public override UninstallController GetUninstallController(Game game, IEmuLibrary emuLibrary) =>
             new MultiFileUninstallController(game, emuLibrary);
 
+        public override bool CheckSourceExists()
+        {
+            return Directory.Exists(SourceFullBaseDir);
+        }
+
         protected override IEnumerable<string> GetDescriptionLines()
         {
             yield return $"{nameof(SourcePath)}: {SourcePath}";

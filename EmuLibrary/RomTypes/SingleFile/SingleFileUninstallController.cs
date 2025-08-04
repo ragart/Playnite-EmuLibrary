@@ -33,7 +33,7 @@ namespace EmuLibrary.RomTypes.SingleFile
             }
             Game.Roms = new System.Collections.ObjectModel.ObservableCollection<GameRom> { new GameRom(Game.Name, srcPath) };
 
-            InvokeOnUninstalled(new GameUninstalledEventArgs());
+            OnUninstalled();
         }
     }
 }

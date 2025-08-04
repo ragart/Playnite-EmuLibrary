@@ -19,7 +19,7 @@ namespace EmuLibrary.RomTypes
         
         public abstract GameMetadata GetMetadata(FileSystemInfoBase file, EmulatorMapping mapping, bool isInstalled);
 
-        public abstract IEnumerable<Game> GetUninstalledGamesMissingSourceFiles(CancellationToken ct);
+        public abstract IEnumerable<Game> GetGamesMissingSourceFiles(CancellationToken ct, bool isInstalled = false);
         
         protected static bool HasMatchingExtension(FileSystemInfoBase file, string extension)
         {

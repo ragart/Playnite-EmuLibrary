@@ -18,6 +18,8 @@ namespace EmuLibrary.RomTypes.M3uPlaylist
 
         public override void Install(InstallActionArgs args)
         {
+            if (!ValidateInstallRequirements())
+                return;
             var info = Game.GetM3uPlaylistGameInfo();
             var srcPath = info.SourceFullPath;
             var dstPath = info.DestinationFullPath;
