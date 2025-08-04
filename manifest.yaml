@@ -1,5 +1,13 @@
 AddonId: EmuLibrary_41e49490-0583-4148-94d2-940c7c74f1d9
 Packages:
+  - Version: 1.2.0
+    RequiredApiVersion: 6.4.0
+    ReleaseDate: '2025-08-05'
+    PackageUrl: https://github.com/ragart/Playnite-EmuLibrary/releases/download/v1.2.0/EmuLibrary_41e49490-0583-4148-94d2-940c7c74f1d9_1_2_0.pext
+    Changelog:
+      - Implemented autoremoving games with missing source files on uninstall methods
+      - Implemented autoremoving games with missing source files on install methods and refactored uninstall methods
+      - Added option to automatically remove installed games missing source files
   - Version: 1.1.1
     RequiredApiVersion: 6.4.0
     ReleaseDate: '2025-08-03'
