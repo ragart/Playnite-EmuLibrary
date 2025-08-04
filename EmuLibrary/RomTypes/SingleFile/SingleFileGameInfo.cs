@@ -17,6 +17,11 @@ namespace EmuLibrary.RomTypes.SingleFile
         public override UninstallController GetUninstallController(Game game, IEmuLibrary emuLibrary) =>
             new SingleFileUninstallController(game, emuLibrary);
 
+        protected override bool CheckSourceExists()
+        {
+            return File.Exists(SourceFullPath);
+        }
+
         protected override IEnumerable<string> GetDescriptionLines()
         {
             yield return $"{nameof(SourcePath)} : {SourcePath}";

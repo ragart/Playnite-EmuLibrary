@@ -11,11 +11,6 @@ namespace EmuLibrary.RomTypes.MultiFile
         internal MultiFileUninstallController(Game game, IEmuLibrary emuLibrary) : base(game, emuLibrary)
         { }
 
-        protected override string GetSourcePath()
-        {
-            return Game.GetMultiFileGameInfo()?.SourceFullBaseDir;
-        }
-
         public override void Uninstall(UninstallActionArgs args)
         {
             var info = Game.GetMultiFileGameInfo();

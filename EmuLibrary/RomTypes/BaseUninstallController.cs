@@ -1,7 +1,6 @@
 
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
-using System.IO;
 
 namespace EmuLibrary.RomTypes
 {
@@ -17,20 +16,11 @@ namespace EmuLibrary.RomTypes
             _emuLibrary = emuLibrary;
         }
 
-        protected abstract string GetSourcePath();
-
         protected void OnUninstalled()
         {
-            if (_emuLibrary.Settings.AutoRemoveUninstalledGamesMissingFromSource)
-            {
-                var sourcePath = GetSourcePath();
-                if (!string.IsNullOrEmpty(sourcePath) && !File.Exists(sourcePath) && !Directory.Exists(sourcePath))
-                {
-                    _emuLibrary.Playnite.Database.Games.Remove(Game);
-                    return;
-                }
-            }
-
+            var info = Game.GetELGameInfo();
+            if (info != null && !info.HandleMissingSource(Game, _emuLibrary))
+                return;
             InvokeOnUninstalled(new GameUninstalledEventArgs());
         }
     }

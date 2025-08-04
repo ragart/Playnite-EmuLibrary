@@ -46,6 +46,17 @@ namespace EmuLibrary.RomTypes
             }
         }
 
+        protected abstract bool CheckSourceExists();
+
+        public bool HandleMissingSource(Game game, IEmuLibrary emuLibrary)
+        {
+            if (CheckSourceExists())
+                return true;
+            if (emuLibrary.Settings.AutoRemoveUninstalledGamesMissingFromSource)
+                emuLibrary.Playnite.Database.Games.Remove(game);
+            return false;
+        }
+
         public string AsGameId()
         {
             using (var ms = new MemoryStream())

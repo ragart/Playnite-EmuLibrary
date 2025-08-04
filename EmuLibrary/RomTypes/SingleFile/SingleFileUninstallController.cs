@@ -11,11 +11,6 @@ namespace EmuLibrary.RomTypes.SingleFile
         internal SingleFileUninstallController(Game game, IEmuLibrary emuLibrary) : base(game, emuLibrary)
         { }
 
-        protected override string GetSourcePath()
-        {
-            return Game.GetSingleFileGameInfo()?.SourceFullPath;
-        }
-
         public override void Uninstall(UninstallActionArgs args)
         {
             var info = Game.GetSingleFileGameInfo();

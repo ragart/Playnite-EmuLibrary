@@ -17,6 +17,8 @@ namespace EmuLibrary.RomTypes.MultiFile
 
         public override void Install(InstallActionArgs args)
         {
+            if (!ValidateInstallRequirements())
+                return;
             var info = Game.GetMultiFileGameInfo();
             var srcPath = info.SourceFullBaseDir;
             var dstPath = info.DestinationFullBaseDir;
