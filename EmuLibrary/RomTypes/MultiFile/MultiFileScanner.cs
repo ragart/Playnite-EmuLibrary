@@ -147,12 +147,12 @@ namespace EmuLibrary.RomTypes.MultiFile
             return metadata;
         }
 
-        public override IEnumerable<Game> GetUninstalledGamesMissingSourceFiles(CancellationToken ct)
+        public override IEnumerable<Game> GetGamesMissingSourceFiles(CancellationToken ct, bool isInstalled)
         {
             return _playniteAPI.Database.Games.TakeWhile(g => !ct.IsCancellationRequested)
                 .Where(g =>
             {
-                if (g.PluginId != EmuLibrary.PluginId || g.IsInstalled)
+                if (g.PluginId != EmuLibrary.PluginId || g.IsInstalled != isInstalled)
                     return false;
 
                 var info = g.GetELGameInfo();

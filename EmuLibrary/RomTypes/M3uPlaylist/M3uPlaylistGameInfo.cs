@@ -18,6 +18,11 @@ namespace EmuLibrary.RomTypes.M3uPlaylist
         public override UninstallController GetUninstallController(Game game, IEmuLibrary emuLibrary) =>
             new M3uPlaylistUninstallController(game, emuLibrary);
 
+        public override bool CheckSourceExists()
+        {
+            return File.Exists(SourceFullPath);
+        }
+
         protected override IEnumerable<string> GetDescriptionLines()
         {
             yield return $"{nameof(SourcePath)}: {SourcePath}";

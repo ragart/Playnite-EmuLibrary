@@ -18,6 +18,8 @@ namespace EmuLibrary.RomTypes.SingleFile
 
         public override void Install(InstallActionArgs args)
         {
+            if (!ValidateInstallRequirements())
+                return;
             var info = Game.GetSingleFileGameInfo();
             var srcPath = info.SourceFullPath;
             var dstPath = info.Mapping.DestinationPathResolved;

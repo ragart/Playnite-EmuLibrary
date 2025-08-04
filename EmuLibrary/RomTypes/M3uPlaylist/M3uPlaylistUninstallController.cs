@@ -39,7 +39,7 @@ namespace EmuLibrary.RomTypes.M3uPlaylist
                 installedM3u.Delete();
             }
 
-            InvokeOnUninstalled(new GameUninstalledEventArgs());
+            OnUninstalled();
         }
     }
 }

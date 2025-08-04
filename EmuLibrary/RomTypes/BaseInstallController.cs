@@ -18,6 +18,23 @@ namespace EmuLibrary.RomTypes
             _emuLibrary = emuLibrary;
         }
 
+        public virtual bool ValidateInstallRequirements()
+        {
+            var info = Game.GetELGameInfo();
+            if (info == null)
+            {
+                _emuLibrary.Playnite.Dialogs.ShowErrorMessage($"Game information is missing for \"{Game.Name}\".", "Installation Error");
+                return false;
+            }
+            if (!info.CheckSourceExists())
+            {
+                info.HandleMissingSource(Game, _emuLibrary);
+                _emuLibrary.Playnite.Dialogs.ShowErrorMessage($"Game source for \"{Game.Name}\" is missing. Cannot proceed with installation.", "Installation Error");
+                return false;
+            }
+            return true;
+        }
+
         public override void Dispose()
         {
             _watcherToken?.Cancel();

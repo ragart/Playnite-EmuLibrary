@@ -24,7 +24,8 @@ namespace EmuLibrary.Settings
 
         public bool ScanGamesInFullScreen { get; set; } = false;
         public bool NotifyOnInstallComplete { get; set; } = false;
-        public bool AutoRemoveUninstalledGamesMissingFromSource { get; set; }
+        public bool AutoRemoveNonInstalledGamesMissingFromSource { get; set; }
+        public bool AutoRemoveInstalledGamesMissingFromSource { get; set; }
         public bool UseWindowsCopyDialogInDesktopMode { get; set; } = false;
         public bool UseWindowsCopyDialogInFullscreenMode { get; set; } = false;
         public bool ShowFullPaths { get; set; } = true;
@@ -77,7 +78,7 @@ namespace EmuLibrary.Settings
             if (Mappings.Count == 0)
             {
                 // We want this to default to true for new installs, but not enable automatically for existing users
-                AutoRemoveUninstalledGamesMissingFromSource = true;
+                AutoRemoveNonInstalledGamesMissingFromSource = true;
             }
 
             if (forceSave)

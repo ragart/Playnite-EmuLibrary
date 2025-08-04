@@ -116,10 +116,7 @@ namespace EmuLibrary
                 }
             }
 
-            if (Settings.AutoRemoveUninstalledGamesMissingFromSource)
-            {
-                RemoveSuperUninstalledGames(false, args.CancelToken);
-            }
+            RemoveGamesMissingSourceFiles(false, args.CancelToken);
         }
 
         public override ISettings GetSettings(bool firstRunSettings) => Settings;
@@ -151,12 +148,35 @@ namespace EmuLibrary
             }
         }
 
+        public override void OnGameStarting(OnGameStartingEventArgs args)
+        {
+            var game = args.Game;
+            if (game.PluginId != Id)
+                return;
+
+            var info = game.GetELGameInfo();
+            if (info == null)
+                return;
+
+            if (info.CheckSourceExists())
+                return;
+
+            args.CancelStartup = true;
+            Playnite.Dialogs.ShowErrorMessage($"Game source for \"{game.Name}\" is missing. Cannot start the game.", "Startup Error");
+            //info.HandleMissingSource(game, this);
+        }
+
+        public override void OnGameStopped(OnGameStoppedEventArgs args)
+        {
+            Playnite.Dialogs.ShowMessage($"Game \"{args.Game.Name}\" has stopped.", "Game Stopped", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+        }
+
         public override IEnumerable<MainMenuItem> GetMainMenuItems(GetMainMenuItemsArgs args)
         {
             yield return new MainMenuItem()
             {
-                Action = (arags) => RemoveSuperUninstalledGames(true, default),
-                Description = "Remove uninstalled games with missing source file...",
+                Action = (arags) => RemoveGamesMissingSourceFiles(true, default),
+                Description = "Remove games with missing source files...",
                 MenuSection = "EmuLibrary"
             };
         }
@@ -206,24 +226,39 @@ namespace EmuLibrary
             }
         }
 
-        private void RemoveSuperUninstalledGames(bool promptUser, CancellationToken ct)
+        private void RemoveGamesMissingSourceFiles(bool promptUser, CancellationToken ct)
         {
-            var toRemove = _scanners.Values.SelectMany(s => s.GetUninstalledGamesMissingSourceFiles(ct)).ToList();
+            var toRemove = new List<Game>();
+
+            if (Settings.AutoRemoveNonInstalledGamesMissingFromSource)
+                toRemove.AddRange(_scanners.Values.SelectMany(s => s.GetGamesMissingSourceFiles(ct, false)));
+
+            if (Settings.AutoRemoveInstalledGamesMissingFromSource)
+                toRemove.AddRange(_scanners.Values.SelectMany(s => s.GetGamesMissingSourceFiles(ct, true)));
+
             if (toRemove.Count != 0)
             {
                 System.Windows.MessageBoxResult res;
                 if (promptUser)
-                {
-                    res = Playnite.Dialogs.ShowMessage($"Delete {toRemove.Count()} library entries?\n\n(This may take a while, during while Playnite will seem frozen.)", "Confirm deletion", System.Windows.MessageBoxButton.YesNo);
-                }
+                    res = Playnite.Dialogs.ShowMessage($"Delete {toRemove.Count} library entries?\n\n(This may take a while, during while Playnite will seem frozen.)", "Confirm deletion", System.Windows.MessageBoxButton.YesNo);
                 else
-                {
                     res = System.Windows.MessageBoxResult.Yes;
-                }
 
                 if (res == System.Windows.MessageBoxResult.Yes)
                 {
-                    Playnite.Database.Games.Remove(toRemove);
+                    var gameIds = toRemove.Select(g => g.Id).ToList();
+                    foreach (var gameId in gameIds)
+                    {
+                        var game = Playnite.Database.Games.Get(gameId);
+                        if (game == null)
+                            continue;
+
+                        if (game.IsInstalled)
+                            Playnite.UninstallGame(game.Id);
+                        else
+                            Playnite.Database.Games.Remove(game);
+                    }
+                    Playnite.Dialogs.ShowMessage($"Removed {toRemove.Count} library entries.", "EmuLibrary");
                 }
             }
             else if (promptUser)
