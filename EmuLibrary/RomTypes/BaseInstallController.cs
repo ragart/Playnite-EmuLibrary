@@ -26,8 +26,9 @@ namespace EmuLibrary.RomTypes
                 _emuLibrary.Playnite.Dialogs.ShowErrorMessage($"Game information is missing for \"{Game.Name}\".", "Installation Error");
                 return false;
             }
-            if (!info.HandleMissingSource(Game, _emuLibrary))
+            if (!info.CheckSourceExists())
             {
+                info.HandleMissingSource(Game, _emuLibrary);
                 _emuLibrary.Playnite.Dialogs.ShowErrorMessage($"Game source for \"{Game.Name}\" is missing. Cannot proceed with installation.", "Installation Error");
                 return false;
             }

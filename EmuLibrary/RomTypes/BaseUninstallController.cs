@@ -19,8 +19,11 @@ namespace EmuLibrary.RomTypes
         protected void OnUninstalled()
         {
             var info = Game.GetELGameInfo();
-            if (info != null && !info.HandleMissingSource(Game, _emuLibrary))
+            if (info != null && !info.CheckSourceExists())
+            {
+                info.HandleMissingSource(Game, _emuLibrary);
                 return;
+            }
             InvokeOnUninstalled(new GameUninstalledEventArgs());
         }
     }
