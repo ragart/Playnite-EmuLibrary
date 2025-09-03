@@ -31,11 +31,9 @@ namespace EmuLibrary.RomTypes.MultiFile
 
             var imageExtensionsLower = mapping.ImageExtensionsLower;
             var extensionsLower = imageExtensionsLower as string[] ?? imageExtensionsLower.ToArray();
-            var srcPath = mapping.SourcePath;
             var dstPath = mapping.DestinationPathResolved;
-            
+
             var installedFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var srcFileEnumerator = new SafeFileEnumerator(srcPath, "*.*", SearchOption.TopDirectoryOnly);
             var dstFileEnumerator = new SafeFileEnumerator(dstPath, "*.*", SearchOption.TopDirectoryOnly);
 
             if (Directory.Exists(dstPath))
@@ -67,8 +65,12 @@ namespace EmuLibrary.RomTypes.MultiFile
             }
 
             // Import uninstalled games
-            if (Directory.Exists(srcPath))
+            foreach (var srcPath in mapping.SourcePaths)
             {
+                if (!Directory.Exists(srcPath))
+                    continue;
+
+                var srcFileEnumerator = new SafeFileEnumerator(srcPath, "*.*", SearchOption.TopDirectoryOnly);
                 foreach (var file in srcFileEnumerator)
                 {
                     if (args.CancelToken.IsCancellationRequested)
@@ -90,7 +92,7 @@ namespace EmuLibrary.RomTypes.MultiFile
             }
         }
 
-        public override GameMetadata GetMetadata(FileSystemInfoBase file, EmulatorMapping mapping, bool installed)
+        public override GameMetadata GetMetadata(FileSystemInfoBase file, EmulatorMapping mapping, bool installed, string baseDir = null)
         {
             var fileInfo = new FileInfo(file.FullName);
             var baseDirInfo = fileInfo.Directory;
@@ -163,9 +165,8 @@ namespace EmuLibrary.RomTypes.MultiFile
                 if (mapping == null)
                     return false;
 
-                return !Directory.Exists(Path.Combine(mapping.SourcePath, (info as MultiFileGameInfo).SourceBaseDir));
+                return !mapping.SourcePaths.Any(srcPath => Directory.Exists(Path.Combine(srcPath, (info as MultiFileGameInfo).SourceBaseDir)));
             });
         }
     }
 }
-

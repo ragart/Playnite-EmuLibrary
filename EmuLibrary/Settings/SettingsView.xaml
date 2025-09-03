@@ -117,15 +117,27 @@
                                 </DataGridTemplateColumn.CellEditingTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="Source Path" Width="180"  >
+                            <DataGridTemplateColumn Header="Source Paths" Width="250">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBlock x:Name="Path"  Text="{Binding Path=SourcePath, UpdateSourceTrigger=PropertyChanged}" />
+                                        <!-- Use an ItemsControl to display the list of paths -->
+                                        <ItemsControl ItemsSource="{Binding SourcePaths}" Margin="4,0,0,0">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding}" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                                 <DataGridTemplateColumn.CellEditingTemplate>
                                     <DataTemplate>
-                                        <Button Name="Browse" Click="Click_BrowseSource">Browse...</Button>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <!-- Button to add a new path -->
+                                            <Button Name="AddSource" Click="Click_AddSourcePath" Margin="0,0,5,0">Add...</Button>
+                                            <!-- Button to clear all paths -->
+                                            <Button Name="ClearSources" Click="Click_ClearSourcePaths" Foreground="Red">Clear</Button>
+                                        </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellEditingTemplate>
                             </DataGridTemplateColumn>

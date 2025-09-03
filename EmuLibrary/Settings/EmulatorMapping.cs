@@ -4,6 +4,7 @@ using Playnite.SDK.Models;
 using Playnite.SDK;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Xml.Serialization;
@@ -15,6 +16,7 @@ namespace EmuLibrary.Settings
         public EmulatorMapping()
         {
             MappingId = Guid.NewGuid();
+            SourcePaths = new ObservableCollection<string>();
         }
 
         public Guid MappingId { get; set; }
@@ -47,7 +49,12 @@ namespace EmuLibrary.Settings
         }
         public string PlatformId { get; set; }
 
-        public string SourcePath { get; set; }
+        // Keep old property for backward compatibility with old settings files
+        [JsonProperty("SourcePath")]
+        [Obsolete("Use SourcePaths instead. This is for backwards compatibility with settings saved before multi-source support.")]
+        private string OldSourcePath { set { if (!string.IsNullOrEmpty(value) && (SourcePaths == null || SourcePaths.Count == 0)) { SourcePaths = new ObservableCollection<string> { value }; } } }
+
+        public ObservableCollection<string> SourcePaths { get; set; }
         public string DestinationPath { get; set; }
         public RomType RomType { get; set; }
 
@@ -151,7 +158,18 @@ namespace EmuLibrary.Settings
             yield return $"{nameof(EmulatorProfile)}*: {EmulatorProfile?.Name ?? "<Unknown>"}";
             yield return $"{nameof(PlatformId)}: {PlatformId ?? "<Unknown>"}";
             yield return $"{nameof(Platform)}*: {Platform?.Name ?? "<Unknown>"}";
-            yield return $"{nameof(SourcePath)}: {SourcePath ?? "<Unknown>"}";
+            if (SourcePaths != null && SourcePaths.Any())
+            {
+                yield return "Source Paths:";
+                foreach (var path in SourcePaths)
+                {
+                    yield return $"    - {path}";
+                }
+            }
+            else
+            {
+                yield return "Source Paths: <None>";
+            }
             yield return $"{nameof(DestinationPath)}: {DestinationPath ?? "<Unknown>"}";
             yield return $"{nameof(DestinationPathResolved)}*: {DestinationPathResolved ?? "<Unknown>"}";
             yield return $"{nameof(EmulatorBasePathResolved)}*: {EmulatorBasePathResolved ?? "<Unknown>"}";
