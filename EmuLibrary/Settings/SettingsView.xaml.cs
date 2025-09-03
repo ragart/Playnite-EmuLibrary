@@ -27,13 +27,29 @@ namespace EmuLibrary.Settings
             }
         }
 
-        private void Click_BrowseSource(object sender, RoutedEventArgs e)
+        private void Click_AddSourcePath(object sender, RoutedEventArgs e)
         {
             var mapping = ((FrameworkElement)sender).DataContext as EmulatorMapping;
             string path;
             if ((path = GetSelectedFolderPath()) != null)
             {
-                mapping.SourcePath = path;
+                mapping.SourcePaths.Add(path);
+            }
+        }
+
+        private void Click_ClearSourcePaths(object sender, RoutedEventArgs e)
+        {
+            if (((FrameworkElement)sender).DataContext is EmulatorMapping mapping)
+            {
+                var res = Settings.Instance.PlayniteAPI.Dialogs.ShowMessage(
+                    "Clear all source paths for this mapping?",
+                    "Confirm clear",
+                    MessageBoxButton.YesNo);
+
+                if (res == MessageBoxResult.Yes)
+                {
+                    mapping.SourcePaths.Clear();
+                }
             }
         }
 

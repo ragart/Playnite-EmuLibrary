@@ -17,7 +17,7 @@ namespace EmuLibrary.RomTypes
 
         public abstract IEnumerable<GameMetadata> GetGames(EmulatorMapping mapping, LibraryGetGamesArgs args);
         
-        public abstract GameMetadata GetMetadata(FileSystemInfoBase file, EmulatorMapping mapping, bool isInstalled);
+        public abstract GameMetadata GetMetadata(FileSystemInfoBase file, EmulatorMapping mapping, bool isInstalled, string baseDir = null);
 
         public abstract IEnumerable<Game> GetGamesMissingSourceFiles(CancellationToken ct, bool isInstalled = false);
         

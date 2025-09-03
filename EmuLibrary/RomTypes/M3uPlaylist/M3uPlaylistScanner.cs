@@ -31,11 +31,9 @@ namespace EmuLibrary.RomTypes.M3uPlaylist
 
             var imageExtensionsLower = mapping.ImageExtensionsLower;
             var extensionsLower = imageExtensionsLower as string[] ?? imageExtensionsLower.ToArray();
-            var srcPath = mapping.SourcePath;
             var dstPath = mapping.DestinationPathResolved;
 
             var installedFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var srcFileEnumerator = new SafeFileEnumerator(srcPath, "*.*", SearchOption.TopDirectoryOnly);
             var dstFileEnumerator = new SafeFileEnumerator(dstPath, "*.*", SearchOption.TopDirectoryOnly);
 
             if (Directory.Exists(dstPath))
@@ -57,13 +55,17 @@ namespace EmuLibrary.RomTypes.M3uPlaylist
                     if (!extensionsLower.Any(ext => HasMatchingExtension(file, ext)))
                         continue;
 
-                    yield return GetMetadata(file, mapping, true);
+                    yield return GetMetadata(file, mapping, true, mapping.DestinationPathResolved);
                 }
             }
 
             // Import uninstalled games
-            if (Directory.Exists(srcPath))
+            foreach (var srcPath in mapping.SourcePaths)
             {
+                if (!Directory.Exists(srcPath))
+                    continue;
+
+                var srcFileEnumerator = new SafeFileEnumerator(srcPath, "*.*", SearchOption.TopDirectoryOnly);
                 foreach (var file in srcFileEnumerator)
                 {
                     if (args.CancelToken.IsCancellationRequested)
@@ -75,12 +77,12 @@ namespace EmuLibrary.RomTypes.M3uPlaylist
                     if (installedFileNames.Contains(file.Name))
                         continue;
 
-                    yield return GetMetadata(file, mapping, false);
+                    yield return GetMetadata(file, mapping, false, srcPath);
                 }
             }
         }
 
-        public override GameMetadata GetMetadata(FileSystemInfoBase file, EmulatorMapping mapping, bool installed)
+        public override GameMetadata GetMetadata(FileSystemInfoBase file, EmulatorMapping mapping, bool installed, string baseDir = null)
         {
             var fileInfo = new FileInfo(file.FullName);
 
@@ -88,9 +90,9 @@ namespace EmuLibrary.RomTypes.M3uPlaylist
             {
                 MappingId = mapping.MappingId,
                 SourcePath = file.Name,
-                SourceBaseDir = "",
+                SourceBaseDir = string.Empty,
                 DestinationPath = file.Name,
-                DestinationBaseDir = ""
+                DestinationBaseDir = string.Empty
             };
 
             var baseFileName = StringExtensions.GetPathWithoutAllExtensions(Path.GetFileName(file.Name));
@@ -152,9 +154,8 @@ namespace EmuLibrary.RomTypes.M3uPlaylist
                 if (mapping == null)
                     return false;
 
-                return !File.Exists(Path.Combine(mapping.SourcePath, info.SourcePath));
+                return !mapping.SourcePaths.Any(srcPath => File.Exists(Path.Combine(srcPath, info.SourcePath)));
             });
         }
     }
 }
-

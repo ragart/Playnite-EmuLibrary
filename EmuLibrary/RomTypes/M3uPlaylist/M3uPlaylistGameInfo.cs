@@ -26,9 +26,11 @@ namespace EmuLibrary.RomTypes.M3uPlaylist
         protected override IEnumerable<string> GetDescriptionLines()
         {
             yield return $"{nameof(SourcePath)}: {SourcePath}";
+            yield return $"{nameof(SourceFullPath)}* : {SourceFullPath}";
             yield return $"{nameof(SourceBaseDir)}: {SourceBaseDir}";
             yield return $"{nameof(SourceFullBaseDir)}*: {SourceFullBaseDir}";
             yield return $"{nameof(DestinationPath)}: {DestinationPath}";
+            yield return $"{nameof(DestinationFullPath)}* : {DestinationFullPath}";
             yield return $"{nameof(DestinationBaseDir)}: {DestinationBaseDir}";
             yield return $"{nameof(DestinationFullBaseDir)}*: {DestinationFullBaseDir}";
         }
