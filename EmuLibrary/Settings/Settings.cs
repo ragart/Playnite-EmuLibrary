@@ -113,13 +113,23 @@ namespace EmuLibrary.Settings
                     mappingErrors.Add($"{m.MappingId}: No image extensions specified for profile {m.EmulatorProfile.Name} with emulator {m.Emulator.Name}. There is nothing for EmuLibrary to scan.");
                 }
 
-                if (string.IsNullOrEmpty(m.SourcePath))
+                if (m.SourcePaths == null || !m.SourcePaths.Any())
                 {
-                    mappingErrors.Add($"{m.MappingId}: No source path specified.");
+                    mappingErrors.Add($"{m.MappingId}: No source paths specified.");
                 }
-                else if (!Directory.Exists(m.SourcePath))
+                else
                 {
-                    mappingErrors.Add($"{m.MappingId}: Source path doesn't exist ({m.SourcePath}).");
+                    foreach (var path in m.SourcePaths)
+                    {
+                        if (string.IsNullOrEmpty(path))
+                        {
+                            mappingErrors.Add($"{m.MappingId}: Contains an empty source path.");
+                        }
+                        else if (!Directory.Exists(path))
+                        {
+                            mappingErrors.Add($"{m.MappingId}: Source path doesn't exist ({path}).");
+                        }
+                    }
                 }
 
                 if (string.IsNullOrEmpty(m.DestinationPathResolved))

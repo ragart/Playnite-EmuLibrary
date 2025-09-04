@@ -20,6 +20,7 @@ Added:
 * Added an option to show the file name instead of the full path.
 * Added a new file type that uses M3U files to determine the files to copy for multi-file games in subfolders.
 * Added an option to automatically remove installed games missing source files.
+* Added option to define multiple source directories for platform.
 
 Removed:
 

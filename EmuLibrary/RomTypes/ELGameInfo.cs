@@ -17,23 +17,41 @@ namespace EmuLibrary.RomTypes
 
         [ProtoMember(1)]
         public Guid MappingId { get; set; }
-        
+
         // Relative to Mapping's SourcePath
         [ProtoMember(2)]
         public string SourcePath { get; set; }
-        public string SourceFullPath => Path.Combine(Mapping?.SourcePath ?? "", SourcePath);
+        public string SourceFullPath
+        {
+            get
+            {
+                if (Mapping == null) return null;
+                return Mapping.SourcePaths
+                    .Select(p => Path.Combine(p, SourcePath))
+                    .FirstOrDefault(p => File.Exists(p) || Directory.Exists(p));
+            }
+        }
 
         // Relative to Mapping's SourcePath
         [ProtoMember(3)]
         public string SourceBaseDir { get; set; }
-        public string SourceFullBaseDir => Path.Combine(Mapping?.SourcePath ?? "", SourceBaseDir);
+        public string SourceFullBaseDir
+        {
+            get
+            {
+                if (Mapping == null) return null;
+                return Mapping.SourcePaths
+                    .Select(p => Path.Combine(p, SourceBaseDir))
+                    .FirstOrDefault(p => Directory.Exists(p));
+            }
+        }
 
         // Relative to Mapping's DestinationPath
         [ProtoMember(4)]
         public string DestinationPath { get; set; }
         public string DestinationFullPath => Path.Combine(Mapping?.DestinationPathResolved ?? "", DestinationPath);
-        
-        // Relative to Mapping's DestinationPath
+
+        // Relative to Mapping's DestinationDir
         [ProtoMember(5)]
         public string DestinationBaseDir { get; set; }
         public string DestinationFullBaseDir => Path.Combine(Mapping?.DestinationPathResolved ?? "", DestinationBaseDir);
@@ -67,7 +85,7 @@ namespace EmuLibrary.RomTypes
                 return $"!0{Convert.ToBase64String(ms.ToArray())}";
             }
         }
-        
+
         // Format:
         // Exclamation point (!) followed by version (char), followed by base64 encoded, ProtoBuf serialized ELGameInfo
 
