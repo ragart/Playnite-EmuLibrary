@@ -42,10 +42,20 @@ namespace EmuLibrary.Settings
         public string EmulatorProfileId { get; set; }
 
         [JsonIgnore]
-        public EmulatedPlatform Platform
+        public Platform Platform
         {
-            get => AvailablePlatforms.FirstOrDefault(p => p.Id == PlatformId);
-            set { PlatformId = value.Id; }
+            get
+            {
+                if (Guid.TryParse(PlatformId, out var guid))
+                {
+                    return AvailablePlatforms.FirstOrDefault(p => p.Id == guid);
+                }
+                else
+                {
+                    return AvailablePlatforms.FirstOrDefault(p => p.SpecificationId == PlatformId);
+                }
+            }
+            set { PlatformId = value.Id.ToString(); }
         }
         public string PlatformId { get; set; }
 
@@ -64,35 +74,38 @@ namespace EmuLibrary.Settings
         public IEnumerable<EmulatorProfile> AvailableProfiles => Emulator?.SelectableProfiles;
 
         [JsonIgnore]
-        public IEnumerable<EmulatedPlatform> AvailablePlatforms
+        public IEnumerable<Platform> AvailablePlatforms
         {
             get
             {
                 var playnite = Settings.Instance.PlayniteAPI;
-                HashSet<string> validPlatforms;
 
-                if (EmulatorProfile is CustomEmulatorProfile)
+                if (EmulatorProfile is CustomEmulatorProfile customProfile)
                 {
-                    var customProfile = EmulatorProfile as CustomEmulatorProfile;
-                    validPlatforms = new HashSet<string>(playnite.Database.Platforms.Where(p => customProfile.Platforms.Contains(p.Id)).Select(p => p.SpecificationId));
+                    return playnite.Database.Platforms
+                        .Where(p => customProfile.Platforms.Contains(p.Id));
                 }
-                else if (EmulatorProfile is BuiltInEmulatorProfile)
+                else if (EmulatorProfile is BuiltInEmulatorProfile builtInProfile)
                 {
-                    var builtInProfile = (EmulatorProfile as BuiltInEmulatorProfile);
-                    validPlatforms = new HashSet<string>(
+                    var validPlatformIds = new HashSet<string>(
                         playnite.Emulation.Emulators
                         .FirstOrDefault(e => e.Id == Emulator.BuiltInConfigId)?
                         .Profiles
                         .FirstOrDefault(p => p.Name == builtInProfile.Name)?
                         .Platforms
                         );
+
+                    var emuPlatforms = Settings.Instance.PlayniteAPI.Emulation.Platforms.Where(p => validPlatformIds.Contains(p.Id));
+                    var validPlatformsInfo = new HashSet<(string, string)>(emuPlatforms.Select(p => (p.Id, p.Name)));
+                    return playnite.Database.Platforms.Where(p =>
+                        p.SpecificationId != null &&
+                        validPlatformsInfo.Contains((p.SpecificationId, p.Name))
+                    );
                 }
                 else
                 {
-                    validPlatforms = new HashSet<string>();
+                    return new List<Platform>();
                 }
-
-                return Settings.Instance.PlayniteAPI.Emulation.Platforms.Where(p => validPlatforms.Contains(p.Id));
             }
         }
 
