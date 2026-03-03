@@ -45,7 +45,7 @@ namespace EmuLibrary.Util.FileCopier
                 {
                     throw new WindowsCopyDialogClosedException("The user cancelled the copy request", ex);
                 }
-                throw new Exception($"Unable to copy source \"{Source.FullName}\" to destination \"{Destination.FullName}\"", ex);
+                throw new FileCopyOperationException($"Unable to copy source \"{Source.FullName}\" to destination \"{Destination.FullName}\"", ex);
             }
         }
     }
