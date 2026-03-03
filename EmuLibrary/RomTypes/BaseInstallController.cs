@@ -4,6 +4,7 @@ using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace EmuLibrary.RomTypes
 {
@@ -11,6 +12,7 @@ namespace EmuLibrary.RomTypes
     {
         protected readonly IEmuLibrary _emuLibrary;
         protected CancellationTokenSource _watcherToken;
+        protected Task _installTask;
 
         internal BaseInstallController(Game game, IEmuLibrary emuLibrary) : base(game)
         {
@@ -39,6 +41,20 @@ namespace EmuLibrary.RomTypes
         {
             _watcherToken?.Cancel();
             base.Dispose();
+        }
+
+        protected void StartTrackedInstall(Task installTask)
+        {
+            _installTask = installTask;
+            _installTask.ContinueWith(
+                t =>
+                {
+                    var ex = t.Exception?.GetBaseException() ?? t.Exception;
+                    _emuLibrary.Logger.Error($"Install task failed for '{Game?.Name}'. {ex}");
+                },
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted,
+                TaskScheduler.Default);
         }
 
         protected bool ShowFullPaths => _emuLibrary.Settings.ShowFullPaths;
