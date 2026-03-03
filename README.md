@@ -24,6 +24,7 @@ Added:
 * Added support for custom platforms in mappings.
 * Added an install method option to choose between copy, hardlink, and symlink.
 * Added a tool to convert installed games to the currently selected install method.
+* Added optional notifications for install completion and when a game stops.
 
 Removed:
 
@@ -39,9 +40,13 @@ To set it up, you create mappings to combine one of each of the following:
 * Platform - the ROM platform/console, out of those that the emulator profile supports
 * RomType - See [Rom Types](#rom-types) below
 
+If two games have the same title but belong to different platforms/mappings, they are expected to appear as separate library entries.
+
 ## Paths
 
 For source and destination, only valid Windows file paths are currently supported. The intended use case is for having the source be an SMB file share (either via UNC path or mapped drive), and the destination be a local path. However, any valid file path should work for either. This means that you can get creative with the source if you have a way to mount alternate remote storage at a Windows file path.
+
+To keep scan results predictable, avoid overlapping source folders within the same mapping when possible.
 
 When using the symlink install method, EmuLibrary attempts to create symbolic links. Optionally, you can enable fallback to hardlinks if symlink creation fails. Hardlinks require source and destination to be on the same volume. If you select the hardlink install method, EmuLibrary creates hardlinks directly (without copy fallback).
 
