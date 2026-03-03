@@ -199,16 +199,29 @@
                               ItemsSource="{Binding Source={StaticResource InstallMethodValues}}"
                               SelectedItem="{Binding InstallMethod, Mode=TwoWay}" />
                 </StackPanel>
+                <CheckBox IsChecked="{Binding SymlinkFallbackToHardlink, Mode=TwoWay}" Margin="0,0,0,10" ToolTip="If enabled, symlink installs will fall back to hardlinks when symlink creation fails.">
+                    <CheckBox.Style>
+                        <Style TargetType="CheckBox">
+                            <Setter Property="IsEnabled" Value="False" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding InstallMethod}" Value="{x:Static settings:InstallMethod.Symlink}">
+                                    <Setter Property="IsEnabled" Value="True" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </CheckBox.Style>
+                    <TextBlock Text="If symlink fails, fallback to hardlink" TextWrapping="Wrap"/>
+                </CheckBox>
                 <CheckBox IsChecked="{Binding AutoConvertInstalledGamesToSelectedInstallMethod, Mode=TwoWay}" Margin="0,0,0,10">
                     <TextBlock Text="Automatically convert games to selected install method" TextWrapping="Wrap"/>
                 </CheckBox>
                 <CheckBox IsChecked="{Binding UseWindowsCopyDialogInDesktopMode, Mode=TwoWay}" Margin="0,0,0,10" ToolTip="Game installs will be performed natively by Windows. The Copy&#x0a;File dialog box will be displayed to show installation progress.">
                     <CheckBox.Style>
                         <Style TargetType="CheckBox">
-                            <Setter Property="IsEnabled" Value="True" />
+                            <Setter Property="IsEnabled" Value="False" />
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding InstallMethod}" Value="{x:Static settings:InstallMethod.Symlink}">
-                                    <Setter Property="IsEnabled" Value="False" />
+                                <DataTrigger Binding="{Binding InstallMethod}" Value="{x:Static settings:InstallMethod.Copy}">
+                                    <Setter Property="IsEnabled" Value="True" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
@@ -218,10 +231,10 @@
                 <CheckBox IsChecked="{Binding UseWindowsCopyDialogInFullscreenMode, Mode=TwoWay}" Margin="0,0,0,10" ToolTip="Game installs will be performed natively by Windows. The Copy&#x0a;File dialog box will be displayed to show installation progress.&#x0a;Please note that enabling this option may cause issues with focus&#x0a;in fullscreen mode.">
                     <CheckBox.Style>
                         <Style TargetType="CheckBox">
-                            <Setter Property="IsEnabled" Value="True" />
+                            <Setter Property="IsEnabled" Value="False" />
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding InstallMethod}" Value="{x:Static settings:InstallMethod.Symlink}">
-                                    <Setter Property="IsEnabled" Value="False" />
+                                <DataTrigger Binding="{Binding InstallMethod}" Value="{x:Static settings:InstallMethod.Copy}">
+                                    <Setter Property="IsEnabled" Value="True" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>

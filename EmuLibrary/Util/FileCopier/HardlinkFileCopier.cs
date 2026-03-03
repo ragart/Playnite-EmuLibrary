@@ -4,14 +4,9 @@ using System.IO;
 
 namespace EmuLibrary.Util.FileCopier
 {
-    public class SymlinkFileCopier : BaseFileCopier, IFileCopier
+    public class HardlinkFileCopier : BaseFileCopier, IFileCopier
     {
-        private readonly bool _fallbackToHardlink;
-
-        public SymlinkFileCopier(FileSystemInfo source, DirectoryInfo destination, bool fallbackToHardlink = true) : base(source, destination)
-        {
-            _fallbackToHardlink = fallbackToHardlink;
-        }
+        public HardlinkFileCopier(FileSystemInfo source, DirectoryInfo destination) : base(source, destination) { }
 
         protected override void Copy()
         {
@@ -19,28 +14,28 @@ namespace EmuLibrary.Util.FileCopier
 
             if (Source is DirectoryInfo)
             {
-                CreateDirectorySymlinks(Source as DirectoryInfo, Destination);
+                CreateDirectoryHardlinks(Source as DirectoryInfo, Destination);
                 return;
             }
 
-            CreateFileSymlink(Source as FileInfo, Destination);
+            CreateFileHardlink(Source as FileInfo, Destination);
         }
 
-        private void CreateDirectorySymlinks(DirectoryInfo source, DirectoryInfo destination)
+        private static void CreateDirectoryHardlinks(DirectoryInfo source, DirectoryInfo destination)
         {
             foreach (var file in source.GetFiles())
             {
-                CreateFileSymlink(file, destination);
+                CreateFileHardlink(file, destination);
             }
 
             foreach (var subDirectory in source.GetDirectories())
             {
                 var subDestination = destination.CreateSubdirectory(subDirectory.Name);
-                CreateDirectorySymlinks(subDirectory, subDestination);
+                CreateDirectoryHardlinks(subDirectory, subDestination);
             }
         }
 
-        private void CreateFileSymlink(FileInfo sourceFile, DirectoryInfo destination)
+        private static void CreateFileHardlink(FileInfo sourceFile, DirectoryInfo destination)
         {
             var linkPath = Path.Combine(destination.FullName, sourceFile.Name);
 
@@ -49,27 +44,15 @@ namespace EmuLibrary.Util.FileCopier
                 File.Delete(linkPath);
             }
 
-            CreateSymlinkWithOptionalFallback(linkPath, sourceFile.FullName);
-        }
-
-        private void CreateSymlinkWithOptionalFallback(string linkPath, string targetPath)
-        {
-            if (TryCreateMklink($"/c mklink \"{linkPath}\" \"{targetPath}\"", out var symlinkError))
+            if (!AreOnSameVolume(linkPath, sourceFile.FullName))
             {
-                return;
+                throw new Exception($"Failed to create hardlink from \"{linkPath}\" to \"{sourceFile.FullName}\". Hardlinks require source and destination on the same volume.");
             }
 
-            if (_fallbackToHardlink && AreOnSameVolume(linkPath, targetPath) && TryCreateMklink($"/c mklink /H \"{linkPath}\" \"{targetPath}\"", out _))
+            if (!TryCreateMklink($"/c mklink /H \"{linkPath}\" \"{sourceFile.FullName}\"", out var error))
             {
-                return;
+                throw new Exception($"Failed to create hardlink from \"{linkPath}\" to \"{sourceFile.FullName}\". {error}");
             }
-
-            if (_fallbackToHardlink)
-            {
-                throw new Exception($"Failed to create symlink from \"{linkPath}\" to \"{targetPath}\". Symlink error: {symlinkError}. Hardlink fallback also failed.");
-            }
-
-            throw new Exception($"Failed to create symlink from \"{linkPath}\" to \"{targetPath}\". {symlinkError}");
         }
 
         private static bool TryCreateMklink(string arguments, out string error)

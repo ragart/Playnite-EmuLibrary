@@ -60,7 +60,12 @@ namespace EmuLibrary.RomTypes
         {
             if (_emuLibrary.Settings.InstallMethod == Settings.InstallMethod.Symlink)
             {
-                return new SymlinkFileCopier(source, destination);
+                return new SymlinkFileCopier(source, destination, _emuLibrary.Settings.SymlinkFallbackToHardlink);
+            }
+
+            if (_emuLibrary.Settings.InstallMethod == Settings.InstallMethod.Hardlink)
+            {
+                return new HardlinkFileCopier(source, destination);
             }
 
             if (UseWindowsCopyDialog())

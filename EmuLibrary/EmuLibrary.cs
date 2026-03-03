@@ -965,7 +965,12 @@ namespace EmuLibrary
         {
             if (Settings.InstallMethod == InstallMethod.Symlink)
             {
-                return new SymlinkFileCopier(source, destination);
+                return new SymlinkFileCopier(source, destination, Settings.SymlinkFallbackToHardlink);
+            }
+
+            if (Settings.InstallMethod == InstallMethod.Hardlink)
+            {
+                return new HardlinkFileCopier(source, destination);
             }
 
             return new SimpleFileCopier(source, destination);
@@ -1060,7 +1065,12 @@ namespace EmuLibrary
 
             if (Settings.InstallMethod == InstallMethod.Symlink)
             {
-                return isSymlink || isHardlink;
+                return isSymlink || (Settings.SymlinkFallbackToHardlink && isHardlink);
+            }
+
+            if (Settings.InstallMethod == InstallMethod.Hardlink)
+            {
+                return isHardlink;
             }
 
             return !isSymlink && !isHardlink;
