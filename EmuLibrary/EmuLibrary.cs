@@ -140,6 +140,8 @@ namespace EmuLibrary
                 yield break;
             }
 
+            var emittedGameIds = new HashSet<string>(StringComparer.Ordinal);
+
             foreach (var mapping in Settings.Mappings?.Where(m => m.Enabled))
             {
                 if (args.CancelToken.IsCancellationRequested)
@@ -171,6 +173,12 @@ namespace EmuLibrary
 
                 foreach (var g in scanner.GetGames(mapping, args))
                 {
+                    if (!string.IsNullOrEmpty(g?.GameId) && !emittedGameIds.Add(g.GameId))
+                    {
+                        Logger.Debug($"Skipping duplicate scan entry for GameId '{g.GameId}' (mapping {mapping.MappingId}).");
+                        continue;
+                    }
+
                     yield return g;
                 }
             }
