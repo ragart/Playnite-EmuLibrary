@@ -41,14 +41,6 @@
   </Target>
 	
   <ItemGroup>
-    <None Include="C:\Users\nshastings\source\repos\EmuLibrary\EmuLibrary\PlayniteCommon\.editorconfig" />
-  </ItemGroup>
-	
-  <ItemGroup>
-    <EditorConfigFiles Remove="C:\Users\nshastings\source\repos\EmuLibrary\EmuLibrary\PlayniteCommon\.editorconfig" />
-  </ItemGroup>
-	
-  <ItemGroup>
     <Reference Include="Microsoft.VisualBasic" />
   </ItemGroup>
 	
