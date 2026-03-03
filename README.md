@@ -22,6 +22,8 @@ Added:
 * Added an option to automatically remove installed games missing source files.
 * Added option to define multiple source directories for platform.
 * Added support for custom platforms in mappings.
+* Added an install method option to choose between copy, hardlink, and symlink.
+* Added a tool to convert installed games to the currently selected install method.
 
 Removed:
 
@@ -40,6 +42,8 @@ To set it up, you create mappings to combine one of each of the following:
 ## Paths
 
 For source and destination, only valid Windows file paths are currently supported. The intended use case is for having the source be an SMB file share (either via UNC path or mapped drive), and the destination be a local path. However, any valid file path should work for either. This means that you can get creative with the source if you have a way to mount alternate remote storage at a Windows file path.
+
+When using the symlink install method, EmuLibrary attempts to create symbolic links. Optionally, you can enable fallback to hardlinks if symlink creation fails. Hardlinks require source and destination to be on the same volume. If you select the hardlink install method, EmuLibrary creates hardlinks directly (without copy fallback).
 
 Additionally, for destination paths, relativity to the Playnite folder is preserved if you are using a portable installation of Playnite and your destination is below that folder hierarchically. This means that, for example, if your portable installation is at D:\playnite, and you choose `D:\playnite\rominstall` as your destination, it will be saved internally as `{PlayniteDir}\rominstall`.
 
