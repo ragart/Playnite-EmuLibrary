@@ -59,6 +59,12 @@ namespace EmuLibrary
             foreach (var rt in romTypes)
             {
                 var fieldInfo = rt.GetType().GetField(rt.ToString());
+                if (fieldInfo == null)
+                {
+                    Logger.Warn($"Failed to find FieldInfo for RomType {rt}. Skipping...");
+                    continue;
+                }
+
                 var romInfo = fieldInfo.GetCustomAttributes(false).OfType<RomTypeInfoAttribute>().FirstOrDefault();
                 if (romInfo == null)
                 {
@@ -66,18 +72,61 @@ namespace EmuLibrary
                     continue;
                 }
 
-                // Hook up ProtoInclude on ELGameInfo for each RomType
-                // Starts at field number 10 to not conflict with ELGameInfo's fields
-                RuntimeTypeModel.Default[typeof(ELGameInfo)].AddSubType((int)rt + 10, romInfo.GameInfoType);
-
-                var scanner = romInfo.ScannerType.GetConstructor(new Type[] { typeof(IEmuLibrary) })?.Invoke(new object[] { this });
-                if (scanner == null)
+                if (romInfo.GameInfoType == null || !typeof(ELGameInfo).IsAssignableFrom(romInfo.GameInfoType))
                 {
-                    Logger.Error($"Failed to instantiate scanner for RomType {rt} (using {romInfo.ScannerType}).");
+                    Logger.Error($"Invalid GameInfoType '{romInfo.GameInfoType}' for RomType {rt}. Skipping...");
                     continue;
                 }
 
-                _scanners.Add(rt, scanner as RomTypeScanner);
+                if (romInfo.ScannerType == null || !typeof(RomTypeScanner).IsAssignableFrom(romInfo.ScannerType))
+                {
+                    Logger.Error($"Invalid ScannerType '{romInfo.ScannerType}' for RomType {rt}. Skipping...");
+                    continue;
+                }
+
+                // Hook up ProtoInclude on ELGameInfo for each RomType
+                // Starts at field number 10 to not conflict with ELGameInfo's fields
+                try
+                {
+                    RuntimeTypeModel.Default[typeof(ELGameInfo)].AddSubType((int)rt + 10, romInfo.GameInfoType);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"Failed to register protobuf subtype for RomType {rt} (GameInfoType {romInfo.GameInfoType}). {ex}");
+                    continue;
+                }
+
+                var scannerConstructor = romInfo.ScannerType.GetConstructor(new[] { typeof(IEmuLibrary) });
+                if (scannerConstructor == null)
+                {
+                    Logger.Error($"Failed to find constructor scanner(IEmuLibrary) for RomType {rt} (using {romInfo.ScannerType}).");
+                    continue;
+                }
+
+                RomTypeScanner scanner;
+                try
+                {
+                    scanner = scannerConstructor.Invoke(new object[] { this }) as RomTypeScanner;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"Failed to instantiate scanner for RomType {rt} (using {romInfo.ScannerType}). {ex}");
+                    continue;
+                }
+
+                if (scanner == null)
+                {
+                    Logger.Error($"Scanner instance for RomType {rt} resolved to null (using {romInfo.ScannerType}).");
+                    continue;
+                }
+
+                if (_scanners.ContainsKey(rt))
+                {
+                    Logger.Warn($"Scanner for RomType {rt} is already initialized. Skipping duplicate registration.");
+                    continue;
+                }
+
+                _scanners.Add(rt, scanner);
             }
         }
 
