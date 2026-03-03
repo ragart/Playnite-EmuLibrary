@@ -21,12 +21,31 @@ namespace EmuLibrary.RomTypes
         public abstract GameMetadata GetMetadata(FileSystemInfoBase file, EmulatorMapping mapping, bool isInstalled, string baseDir = null);
 
         public abstract IEnumerable<Game> GetGamesMissingSourceFiles(CancellationToken ct, bool isInstalled = false);
+
+        protected static string NormalizeExtension(string extension)
+        {
+            if (string.IsNullOrWhiteSpace(extension))
+                return "<none>";
+
+            var normalized = extension.Trim();
+            if (normalized.StartsWith("."))
+                normalized = normalized.Substring(1);
+
+            return normalized.Length == 0 ? "<none>" : normalized.ToLowerInvariant();
+        }
         
         protected static bool HasMatchingExtension(FileSystemInfoBase file, string extension)
         {
-            var fileExtension = file.Extension?.TrimStart('.') ?? string.Empty;
-            return string.Equals(fileExtension, extension, StringComparison.OrdinalIgnoreCase)
-                   || (fileExtension.Length == 0 && string.Equals(extension, "<none>", StringComparison.OrdinalIgnoreCase));
+            var normalizedFileExtension = NormalizeExtension(file.Extension);
+            return string.Equals(normalizedFileExtension, NormalizeExtension(extension), StringComparison.OrdinalIgnoreCase);
+        }
+
+        protected static bool HasMatchingExtension(FileSystemInfoBase file, ISet<string> normalizedExtensions)
+        {
+            if (normalizedExtensions == null || normalizedExtensions.Count == 0)
+                return false;
+
+            return normalizedExtensions.Contains(NormalizeExtension(file.Extension));
         }
     }
 }

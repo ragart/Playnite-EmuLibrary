@@ -29,8 +29,14 @@ namespace EmuLibrary.RomTypes.SingleFile
             if (args.CancelToken.IsCancellationRequested)
                 yield break;
 
-            var imageExtensionsLower = mapping.ImageExtensionsLower;
-            var extensionsLower = imageExtensionsLower as string[] ?? imageExtensionsLower.ToArray();
+            var imageExtensionsLower = mapping.ImageExtensionsLower ?? Enumerable.Empty<string>();
+            var normalizedExtensions = new HashSet<string>(
+                imageExtensionsLower.Select(NormalizeExtension),
+                StringComparer.OrdinalIgnoreCase);
+
+            if (normalizedExtensions.Count == 0)
+                yield break;
+
             var dstPath = mapping.DestinationPathResolved;
 
             var installedFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -52,7 +58,7 @@ namespace EmuLibrary.RomTypes.SingleFile
                     if (args.CancelToken.IsCancellationRequested)
                         yield break;
 
-                    if (!extensionsLower.Any(ext => HasMatchingExtension(file, ext)))
+                    if (!HasMatchingExtension(file, normalizedExtensions))
                         continue;
 
                     yield return GetMetadata(file, mapping, true, mapping.DestinationPathResolved);
@@ -71,7 +77,7 @@ namespace EmuLibrary.RomTypes.SingleFile
                     if (args.CancelToken.IsCancellationRequested)
                         yield break;
 
-                    if (!extensionsLower.Any(ext => HasMatchingExtension(file, ext)))
+                    if (!HasMatchingExtension(file, normalizedExtensions))
                         continue;
 
                     if (installedFileNames.Contains(file.Name))
