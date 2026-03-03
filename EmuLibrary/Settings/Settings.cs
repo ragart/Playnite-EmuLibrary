@@ -29,6 +29,7 @@ namespace EmuLibrary.Settings
         public bool UseWindowsCopyDialogInDesktopMode { get; set; } = false;
         public bool UseWindowsCopyDialogInFullscreenMode { get; set; } = false;
         public InstallMethod InstallMethod { get; set; } = InstallMethod.Copy;
+        public bool AutoConvertInstalledGamesToSelectedInstallMethod { get; set; } = false;
         public bool ShowFullPaths { get; set; } = true;
         public ObservableCollection<EmulatorMapping> Mappings { get; set; }
 

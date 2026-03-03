@@ -199,6 +199,9 @@
                               ItemsSource="{Binding Source={StaticResource InstallMethodValues}}"
                               SelectedItem="{Binding InstallMethod, Mode=TwoWay}" />
                 </StackPanel>
+                <CheckBox IsChecked="{Binding AutoConvertInstalledGamesToSelectedInstallMethod, Mode=TwoWay}" Margin="0,0,0,10">
+                    <TextBlock Text="Automatically convert games to selected install method" TextWrapping="Wrap"/>
+                </CheckBox>
                 <CheckBox IsChecked="{Binding UseWindowsCopyDialogInDesktopMode, Mode=TwoWay}" Margin="0,0,0,10" ToolTip="Game installs will be performed natively by Windows. The Copy&#x0a;File dialog box will be displayed to show installation progress.">
                     <CheckBox.Style>
                         <Style TargetType="CheckBox">

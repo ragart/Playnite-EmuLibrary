@@ -1,5 +1,6 @@
 using EmuLibrary.RomTypes;
 using Playnite.SDK;
+using System.Threading;
 
 namespace EmuLibrary
 {
@@ -10,5 +11,7 @@ namespace EmuLibrary
         Settings.Settings Settings { get; }
         string GetPluginUserDataPath();
         RomTypeScanner GetScanner(RomType romType);
+        void ConvertInstalledGamesToCurrentInstallMethod(bool promptUser, CancellationToken ct);
+        void DryRunConvertInstalledGamesToCurrentInstallMethod(CancellationToken ct);
     }
 }
