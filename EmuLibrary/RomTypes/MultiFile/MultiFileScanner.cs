@@ -29,8 +29,16 @@ namespace EmuLibrary.RomTypes.MultiFile
             if (args.CancelToken.IsCancellationRequested)
                 yield break;
 
-            var imageExtensionsLower = mapping.ImageExtensionsLower;
-            var extensionsLower = imageExtensionsLower as string[] ?? imageExtensionsLower.ToArray();
+            var imageExtensionsLower = mapping.ImageExtensionsLower ?? Enumerable.Empty<string>();
+            var extensionPriority = imageExtensionsLower
+                .Select(NormalizeExtension)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select((extension, index) => (extension, index))
+                .ToDictionary(x => x.extension, x => x.index, StringComparer.OrdinalIgnoreCase);
+
+            if (extensionPriority.Count == 0)
+                yield break;
+
             var dstPath = mapping.DestinationPathResolved;
 
             var installedFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -55,8 +63,7 @@ namespace EmuLibrary.RomTypes.MultiFile
                     if (!file.Attributes.HasFlag(FileAttributes.Directory))
                         continue;
 
-                    var dirEnumerator = new SafeFileEnumerator(file.FullName, "*.*", SearchOption.AllDirectories);
-                    var rom = extensionsLower.Select(ext => dirEnumerator.FirstOrDefault(f => HasMatchingExtension(f, ext))).FirstOrDefault(f => f != null);
+                    var rom = FindPreferredRomFile(file.FullName, extensionPriority, args.CancelToken);
                     if (rom == null)
                         continue;
 
@@ -82,8 +89,7 @@ namespace EmuLibrary.RomTypes.MultiFile
                     if (installedFileNames.Contains(file.Name))
                         continue;
 
-                    var dirEnumerator = new SafeFileEnumerator(file.FullName, "*.*", SearchOption.AllDirectories);
-                    var rom = extensionsLower.Select(ext => dirEnumerator.FirstOrDefault(f => HasMatchingExtension(f, ext))).FirstOrDefault(f => f != null);
+                    var rom = FindPreferredRomFile(file.FullName, extensionPriority, args.CancelToken);
                     if (rom == null)
                         continue;
 
@@ -167,6 +173,35 @@ namespace EmuLibrary.RomTypes.MultiFile
 
                 return !mapping.SourcePaths.Any(srcPath => Directory.Exists(Path.Combine(srcPath, (info as MultiFileGameInfo).SourceBaseDir)));
             });
+        }
+
+        private static FileSystemInfoBase FindPreferredRomFile(string directoryPath, Dictionary<string, int> extensionPriority, CancellationToken ct)
+        {
+            var dirEnumerator = new SafeFileEnumerator(directoryPath, "*.*", SearchOption.AllDirectories);
+
+            FileSystemInfoBase bestFile = null;
+            var bestPriority = int.MaxValue;
+
+            foreach (var file in dirEnumerator)
+            {
+                if (ct.IsCancellationRequested)
+                    break;
+
+                var normalizedExtension = NormalizeExtension(file.Extension);
+                if (!extensionPriority.TryGetValue(normalizedExtension, out var priority))
+                    continue;
+
+                if (priority < bestPriority)
+                {
+                    bestPriority = priority;
+                    bestFile = file;
+
+                    if (bestPriority == 0)
+                        break;
+                }
+            }
+
+            return bestFile;
         }
     }
 }

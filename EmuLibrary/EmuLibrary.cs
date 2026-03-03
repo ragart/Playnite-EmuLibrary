@@ -42,6 +42,9 @@ namespace EmuLibrary
 
         private readonly Dictionary<RomType, RomTypeScanner> _scanners = new Dictionary<RomType, RomTypeScanner>();
         private int _backgroundMaintenanceRunning;
+        private int _backgroundMaintenancePending;
+        private readonly object _backgroundMaintenanceSync = new object();
+        private CancellationTokenSource _backgroundMaintenanceCts;
 
         public EmuLibrary(IPlayniteAPI api) : base(api)
         {
@@ -59,6 +62,12 @@ namespace EmuLibrary
             foreach (var rt in romTypes)
             {
                 var fieldInfo = rt.GetType().GetField(rt.ToString());
+                if (fieldInfo == null)
+                {
+                    Logger.Warn($"Failed to find FieldInfo for RomType {rt}. Skipping...");
+                    continue;
+                }
+
                 var romInfo = fieldInfo.GetCustomAttributes(false).OfType<RomTypeInfoAttribute>().FirstOrDefault();
                 if (romInfo == null)
                 {
@@ -66,18 +75,61 @@ namespace EmuLibrary
                     continue;
                 }
 
-                // Hook up ProtoInclude on ELGameInfo for each RomType
-                // Starts at field number 10 to not conflict with ELGameInfo's fields
-                RuntimeTypeModel.Default[typeof(ELGameInfo)].AddSubType((int)rt + 10, romInfo.GameInfoType);
-
-                var scanner = romInfo.ScannerType.GetConstructor(new Type[] { typeof(IEmuLibrary) })?.Invoke(new object[] { this });
-                if (scanner == null)
+                if (romInfo.GameInfoType == null || !typeof(ELGameInfo).IsAssignableFrom(romInfo.GameInfoType))
                 {
-                    Logger.Error($"Failed to instantiate scanner for RomType {rt} (using {romInfo.ScannerType}).");
+                    Logger.Error($"Invalid GameInfoType '{romInfo.GameInfoType}' for RomType {rt}. Skipping...");
                     continue;
                 }
 
-                _scanners.Add(rt, scanner as RomTypeScanner);
+                if (romInfo.ScannerType == null || !typeof(RomTypeScanner).IsAssignableFrom(romInfo.ScannerType))
+                {
+                    Logger.Error($"Invalid ScannerType '{romInfo.ScannerType}' for RomType {rt}. Skipping...");
+                    continue;
+                }
+
+                // Hook up ProtoInclude on ELGameInfo for each RomType
+                // Starts at field number 10 to not conflict with ELGameInfo's fields
+                try
+                {
+                    RuntimeTypeModel.Default[typeof(ELGameInfo)].AddSubType((int)rt + 10, romInfo.GameInfoType);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"Failed to register protobuf subtype for RomType {rt} (GameInfoType {romInfo.GameInfoType}). {ex}");
+                    continue;
+                }
+
+                var scannerConstructor = romInfo.ScannerType.GetConstructor(new[] { typeof(IEmuLibrary) });
+                if (scannerConstructor == null)
+                {
+                    Logger.Error($"Failed to find constructor scanner(IEmuLibrary) for RomType {rt} (using {romInfo.ScannerType}).");
+                    continue;
+                }
+
+                RomTypeScanner scanner;
+                try
+                {
+                    scanner = scannerConstructor.Invoke(new object[] { this }) as RomTypeScanner;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"Failed to instantiate scanner for RomType {rt} (using {romInfo.ScannerType}). {ex}");
+                    continue;
+                }
+
+                if (scanner == null)
+                {
+                    Logger.Error($"Scanner instance for RomType {rt} resolved to null (using {romInfo.ScannerType}).");
+                    continue;
+                }
+
+                if (_scanners.ContainsKey(rt))
+                {
+                    Logger.Warn($"Scanner for RomType {rt} is already initialized. Skipping duplicate registration.");
+                    continue;
+                }
+
+                _scanners.Add(rt, scanner);
             }
         }
 
@@ -87,6 +139,8 @@ namespace EmuLibrary
             {
                 yield break;
             }
+
+            var emittedGameIds = new HashSet<string>(StringComparer.Ordinal);
 
             foreach (var mapping in Settings.Mappings?.Where(m => m.Enabled))
             {
@@ -119,6 +173,12 @@ namespace EmuLibrary
 
                 foreach (var g in scanner.GetGames(mapping, args))
                 {
+                    if (!string.IsNullOrEmpty(g?.GameId) && !emittedGameIds.Add(g.GameId))
+                    {
+                        Logger.Debug($"Skipping duplicate scan entry for GameId '{g.GameId}' (mapping {mapping.MappingId}).");
+                        continue;
+                    }
+
                     yield return g;
                 }
             }
@@ -175,7 +235,12 @@ namespace EmuLibrary
 
         public override void OnGameStopped(OnGameStoppedEventArgs args)
         {
-            Playnite.Dialogs.ShowMessage($"Game \"{args.Game.Name}\" has stopped.", "Game Stopped", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+            if (args.Game.PluginId != PluginId || !Settings.NotifyOnGameStopped)
+            {
+                return;
+            }
+
+            Playnite.Notifications.Add(args.Game.GameId, $"Game \"{args.Game.Name}\" has stopped.", NotificationType.Info);
         }
 
         public override IEnumerable<MainMenuItem> GetMainMenuItems(GetMainMenuItemsArgs args)
@@ -221,8 +286,9 @@ namespace EmuLibrary
                 {
                     gameInfo = game.GetELGameInfo();
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Logger.Debug($"Skipping game '{game?.Name}' in game menu: failed to decode ELGameInfo. {ex}");
                     return (null, null);
                 }
 
@@ -521,8 +587,9 @@ namespace EmuLibrary
                 {
                     info = game.GetELGameInfo();
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Logger.Debug($"Skipping game '{game?.Name}' while checking missing source files: failed to decode ELGameInfo. {ex}");
                     continue;
                 }
 
@@ -540,8 +607,11 @@ namespace EmuLibrary
 
         private void QueueBackgroundMaintenance()
         {
-            if (Interlocked.Exchange(ref _backgroundMaintenanceRunning, 1) == 1)
+            Interlocked.Exchange(ref _backgroundMaintenancePending, 1);
+
+            if (Interlocked.CompareExchange(ref _backgroundMaintenanceRunning, 1, 0) != 0)
             {
+                CancelBackgroundMaintenance();
                 return;
             }
 
@@ -549,11 +619,26 @@ namespace EmuLibrary
             {
                 try
                 {
-                    RemoveGamesMissingSourceFiles(false, CancellationToken.None);
-
-                    if (Settings.AutoConvertInstalledGamesToSelectedInstallMethod)
+                    while (Interlocked.Exchange(ref _backgroundMaintenancePending, 0) == 1)
                     {
-                        ConvertInstalledGamesToCurrentInstallMethod(false, false, CancellationToken.None);
+                        var passToken = CreateBackgroundMaintenanceToken();
+                        try
+                        {
+                            RemoveGamesMissingSourceFiles(false, passToken);
+
+                            if (Settings.AutoConvertInstalledGamesToSelectedInstallMethod)
+                            {
+                                ConvertInstalledGamesToCurrentInstallMethod(false, false, passToken);
+                            }
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            Logger.Debug("Background maintenance pass canceled.");
+                        }
+                        finally
+                        {
+                            ClearBackgroundMaintenanceToken();
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -563,8 +648,40 @@ namespace EmuLibrary
                 finally
                 {
                     Interlocked.Exchange(ref _backgroundMaintenanceRunning, 0);
+
+                    if (Volatile.Read(ref _backgroundMaintenancePending) == 1)
+                    {
+                        QueueBackgroundMaintenance();
+                    }
                 }
             });
+        }
+
+        private CancellationToken CreateBackgroundMaintenanceToken()
+        {
+            lock (_backgroundMaintenanceSync)
+            {
+                _backgroundMaintenanceCts?.Dispose();
+                _backgroundMaintenanceCts = new CancellationTokenSource();
+                return _backgroundMaintenanceCts.Token;
+            }
+        }
+
+        private void CancelBackgroundMaintenance()
+        {
+            lock (_backgroundMaintenanceSync)
+            {
+                _backgroundMaintenanceCts?.Cancel();
+            }
+        }
+
+        private void ClearBackgroundMaintenanceToken()
+        {
+            lock (_backgroundMaintenanceSync)
+            {
+                _backgroundMaintenanceCts?.Dispose();
+                _backgroundMaintenanceCts = null;
+            }
         }
 
         public void ConvertInstalledGamesToCurrentInstallMethod(bool promptUser, CancellationToken ct)
@@ -698,8 +815,9 @@ namespace EmuLibrary
                 {
                     info = game.GetELGameInfo();
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Logger.Debug($"Skipping game '{game?.Name}' during conversion eligibility analysis: failed to decode ELGameInfo. {ex}");
                     skipped++;
                     continue;
                 }

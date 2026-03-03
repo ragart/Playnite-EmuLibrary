@@ -66,10 +66,10 @@ namespace EmuLibrary.Util.FileCopier
 
             if (_fallbackToHardlink)
             {
-                throw new Exception($"Failed to create symlink from \"{linkPath}\" to \"{targetPath}\". Symlink error: {symlinkError}. Hardlink fallback also failed.");
+                throw new SymlinkCreationException($"Failed to create symlink from \"{linkPath}\" to \"{targetPath}\". Symlink error: {symlinkError}. Hardlink fallback also failed.");
             }
 
-            throw new Exception($"Failed to create symlink from \"{linkPath}\" to \"{targetPath}\". {symlinkError}");
+            throw new SymlinkCreationException($"Failed to create symlink from \"{linkPath}\" to \"{targetPath}\". {symlinkError}");
         }
 
         private static bool TryCreateMklink(string arguments, out string error)

@@ -1,5 +1,24 @@
 AddonId: EmuLibrary_41e49490-0583-4148-94d2-940c7c74f1d9
 Packages:
+  - Version: 1.6.0
+    RequiredApiVersion: 6.4.0
+    ReleaseDate: '2026-03-03'
+    PackageUrl: https://github.com/ragart/Playnite-EmuLibrary/releases/download/v1.6.0/EmuLibrary_41e49490-0583-4148-94d2-940c7c74f1d9_1_6_0.pext
+    Changelog:
+      - Hardened scanner initialization
+      - Implemented async install tracking to avoid unobserved exceptions
+      - Added logging to empty or silent catch blocks
+      - Switched to culture-invariant extension comparisons
+      - Reduced repeated full-directory scans
+      - Made background maintenance cancellable
+      - Replaced generic throws with dedicated exception types
+      - Removed legacy absolute paths from project configuration
+      - Implemented cleaner handling of mapping table edits
+      - Resolved pending TODOs
+      - Added option to show a notification upon game install and game stop
+      - Added protective dedupe
+      - Added null-safety fix to validation messages
+      - Added fallback to SolutionDir for missing legacy paths in project configuration
   - Version: 1.5.0
     RequiredApiVersion: 6.4.0
     ReleaseDate: '2026-03-03'

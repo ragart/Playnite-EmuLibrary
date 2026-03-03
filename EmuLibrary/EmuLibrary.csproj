@@ -12,6 +12,11 @@
 	<AutoGenerateBindingRedirects>True</AutoGenerateBindingRedirects>
 	<GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <EffectiveSolutionDir Condition="'$(SolutionDir)' != ''">$(SolutionDir)</EffectiveSolutionDir>
+    <EffectiveSolutionDir Condition="'$(SolutionDir)' == ''">$(MSBuildProjectDirectory)\..\</EffectiveSolutionDir>
+  </PropertyGroup>
 	
   <ItemGroup>
     <PackageReference Include="ini-parser" Version="2.5.2" />
@@ -37,16 +42,8 @@
   </ItemGroup>
 	
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="&quot;$(SolutionDir)toolbox\toolbox.exe&quot; pack $(TargetDir) $(SolutionDir)" />
+    <Exec Command="&quot;$(EffectiveSolutionDir)toolbox\toolbox.exe&quot; pack $(TargetDir) $(EffectiveSolutionDir)" />
   </Target>
-	
-  <ItemGroup>
-    <None Include="C:\Users\nshastings\source\repos\EmuLibrary\EmuLibrary\PlayniteCommon\.editorconfig" />
-  </ItemGroup>
-	
-  <ItemGroup>
-    <EditorConfigFiles Remove="C:\Users\nshastings\source\repos\EmuLibrary\EmuLibrary\PlayniteCommon\.editorconfig" />
-  </ItemGroup>
 	
   <ItemGroup>
     <Reference Include="Microsoft.VisualBasic" />
