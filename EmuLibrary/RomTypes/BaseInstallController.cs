@@ -58,10 +58,16 @@ namespace EmuLibrary.RomTypes
 
         protected IFileCopier CreateFileCopier(FileSystemInfo source, DirectoryInfo destination)
         {
+            if (_emuLibrary.Settings.InstallMethod == Settings.InstallMethod.Symlink)
+            {
+                return new SymlinkFileCopier(source, destination);
+            }
+
             if (UseWindowsCopyDialog())
             {
                 return new WindowsFileCopier(source, destination);
             }
+
             return new SimpleFileCopier(source, destination);
         }
     }

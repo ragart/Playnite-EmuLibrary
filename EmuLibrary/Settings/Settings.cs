@@ -28,6 +28,7 @@ namespace EmuLibrary.Settings
         public bool AutoRemoveInstalledGamesMissingFromSource { get; set; }
         public bool UseWindowsCopyDialogInDesktopMode { get; set; } = false;
         public bool UseWindowsCopyDialogInFullscreenMode { get; set; } = false;
+        public InstallMethod InstallMethod { get; set; } = InstallMethod.Copy;
         public bool ShowFullPaths { get; set; } = true;
         public ObservableCollection<EmulatorMapping> Mappings { get; set; }
 
