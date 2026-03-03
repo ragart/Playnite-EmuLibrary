@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -128,7 +129,17 @@ namespace System
                     continue;
                 }
 
-                // TODO Add support for lists
+                if (diffOnly && sourceValue is IEnumerable sourceEnumerable && !(sourceValue is string))
+                {
+                    if (targetValue is IEnumerable targetEnumerable && SequenceEquals(sourceEnumerable, targetEnumerable))
+                    {
+                        continue;
+                    }
+
+                    targetProperty.SetValue(destination, sourceValue);
+                    continue;
+                }
+
                 if (sourceValue is IComparable && diffOnly)
                 {
                     var equal = ((IComparable)sourceValue).CompareTo(targetValue) == 0;
@@ -156,6 +167,46 @@ namespace System
 
                     targetProperty.SetValue(destination, sourceValue);
                 }
+            }
+        }
+
+        private static bool SequenceEquals(IEnumerable source, IEnumerable target)
+        {
+            if (ReferenceEquals(source, target))
+            {
+                return true;
+            }
+
+            if (source == null || target == null)
+            {
+                return false;
+            }
+
+            var sourceEnumerator = source.GetEnumerator();
+            var targetEnumerator = target.GetEnumerator();
+
+            try
+            {
+                while (true)
+                {
+                    var hasSource = sourceEnumerator.MoveNext();
+                    var hasTarget = targetEnumerator.MoveNext();
+
+                    if (!hasSource || !hasTarget)
+                    {
+                        return hasSource == hasTarget;
+                    }
+
+                    if (!Equals(sourceEnumerator.Current, targetEnumerator.Current))
+                    {
+                        return false;
+                    }
+                }
+            }
+            finally
+            {
+                (sourceEnumerator as IDisposable)?.Dispose();
+                (targetEnumerator as IDisposable)?.Dispose();
             }
         }
     }
