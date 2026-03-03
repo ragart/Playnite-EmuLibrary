@@ -270,8 +270,9 @@ namespace EmuLibrary
                 {
                     gameInfo = game.GetELGameInfo();
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Logger.Debug($"Skipping game '{game?.Name}' in game menu: failed to decode ELGameInfo. {ex}");
                     return (null, null);
                 }
 
@@ -570,8 +571,9 @@ namespace EmuLibrary
                 {
                     info = game.GetELGameInfo();
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Logger.Debug($"Skipping game '{game?.Name}' while checking missing source files: failed to decode ELGameInfo. {ex}");
                     continue;
                 }
 
@@ -747,8 +749,9 @@ namespace EmuLibrary
                 {
                     info = game.GetELGameInfo();
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Logger.Debug($"Skipping game '{game?.Name}' during conversion eligibility analysis: failed to decode ELGameInfo. {ex}");
                     skipped++;
                     continue;
                 }
