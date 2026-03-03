@@ -8,8 +8,6 @@ namespace EmuLibrary.Settings
 {
     public partial class SettingsView : UserControl
     {
-        private bool InManualCellCommit = false;
-
         public SettingsView()
         {
             InitializeComponent();
@@ -72,29 +70,6 @@ namespace EmuLibrary.Settings
         private static string GetSelectedFolderPath()
         {
             return Settings.Instance.PlayniteAPI.Dialogs.SelectFolder();
-        }
-
-        private void DataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
-        {
-            if (!InManualCellCommit && sender is DataGrid grid)
-            {
-                InManualCellCommit = true;
-
-                // HACK!!!!
-                // Alternate approach 1: try to find new value here and store that somewhere as the currently selected emu
-                // Alternate approach 2: the "right" way(?) https://stackoverflow.com/a/34332709
-                if (e.Column.Header?.ToString() == "Emulator" || e.Column.Header?.ToString() == "Profile")
-                {
-                    grid.CommitEdit(DataGridEditingUnit.Row, true);
-                }
-
-                InManualCellCommit = false;
-            }
-        }
-
-        private void DataGrid_CurrentCellChanged(object sender, EventArgs e)
-        {
-            
         }
 
         private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)

@@ -29,7 +29,28 @@ namespace EmuLibrary.Settings
         public Emulator Emulator
         {
             get => AvailableEmulators.FirstOrDefault(e => e.Id == EmulatorId);
-            set { EmulatorId = value.Id; }
+            set
+            {
+                var newEmulatorId = value?.Id ?? Guid.Empty;
+                if (EmulatorId == newEmulatorId)
+                {
+                    return;
+                }
+
+                EmulatorId = newEmulatorId;
+                EmulatorProfileId = null;
+                PlatformId = null;
+
+                OnPropertyChanged(nameof(EmulatorId));
+                OnPropertyChanged(nameof(Emulator));
+                OnPropertyChanged(nameof(AvailableProfiles));
+                OnPropertyChanged(nameof(EmulatorProfileId));
+                OnPropertyChanged(nameof(EmulatorProfile));
+                OnPropertyChanged(nameof(AvailablePlatforms));
+                OnPropertyChanged(nameof(PlatformId));
+                OnPropertyChanged(nameof(Platform));
+                OnPropertyChanged(nameof(ImageExtensionsLower));
+            }
         }
         public Guid EmulatorId { get; set; }
 
@@ -37,7 +58,24 @@ namespace EmuLibrary.Settings
         public EmulatorProfile EmulatorProfile
         {
             get => Emulator?.SelectableProfiles.FirstOrDefault(p => p.Id == EmulatorProfileId);
-            set { EmulatorProfileId = value.Id; }
+            set
+            {
+                var newProfileId = value?.Id;
+                if (EmulatorProfileId == newProfileId)
+                {
+                    return;
+                }
+
+                EmulatorProfileId = newProfileId;
+                PlatformId = null;
+
+                OnPropertyChanged(nameof(EmulatorProfileId));
+                OnPropertyChanged(nameof(EmulatorProfile));
+                OnPropertyChanged(nameof(AvailablePlatforms));
+                OnPropertyChanged(nameof(PlatformId));
+                OnPropertyChanged(nameof(Platform));
+                OnPropertyChanged(nameof(ImageExtensionsLower));
+            }
         }
         public string EmulatorProfileId { get; set; }
 
@@ -55,7 +93,18 @@ namespace EmuLibrary.Settings
                     return AvailablePlatforms.FirstOrDefault(p => p.SpecificationId == PlatformId);
                 }
             }
-            set { PlatformId = value.Id.ToString(); }
+            set
+            {
+                var newPlatformId = value?.Id.ToString();
+                if (PlatformId == newPlatformId)
+                {
+                    return;
+                }
+
+                PlatformId = newPlatformId;
+                OnPropertyChanged(nameof(PlatformId));
+                OnPropertyChanged(nameof(Platform));
+            }
         }
         public string PlatformId { get; set; }
 
@@ -71,7 +120,7 @@ namespace EmuLibrary.Settings
         public static IEnumerable<Emulator> AvailableEmulators => Settings.Instance.PlayniteAPI.Database.Emulators.OrderBy(x => x.Name);
 
         [JsonIgnore]
-        public IEnumerable<EmulatorProfile> AvailableProfiles => Emulator?.SelectableProfiles;
+        public IEnumerable<EmulatorProfile> AvailableProfiles => Emulator?.SelectableProfiles ?? Enumerable.Empty<EmulatorProfile>();
 
         [JsonIgnore]
         public IEnumerable<Platform> AvailablePlatforms
@@ -82,22 +131,45 @@ namespace EmuLibrary.Settings
 
                 if (EmulatorProfile is CustomEmulatorProfile customProfile)
                 {
+                    var customProfilePlatforms = customProfile.Platforms ?? new List<Guid>();
+
+                    if (!customProfilePlatforms.Any())
+                    {
+                        return new List<Platform>();
+                    }
+
                     return playnite.Database.Platforms
-                        .Where(p => customProfile.Platforms.Contains(p.Id));
+                        .Where(p => p != null && customProfilePlatforms.Contains(p.Id));
                 }
                 else if (EmulatorProfile is BuiltInEmulatorProfile builtInProfile)
                 {
-                    var validPlatformIds = new HashSet<string>(
-                        playnite.Emulation.Emulators
-                        .FirstOrDefault(e => e.Id == Emulator.BuiltInConfigId)?
-                        .Profiles
-                        .FirstOrDefault(p => p.Name == builtInProfile.Name)?
-                        .Platforms
-                        );
+                    var emulator = Emulator;
+                    if (emulator == null)
+                    {
+                        return new List<Platform>();
+                    }
 
-                    var emuPlatforms = Settings.Instance.PlayniteAPI.Emulation.Platforms.Where(p => validPlatformIds.Contains(p.Id));
+                    var builtInEmulator = playnite.Emulation.Emulators
+                        .FirstOrDefault(e => e.Id == emulator.BuiltInConfigId);
+
+                    var builtInEmulatorProfile = builtInEmulator?.Profiles?
+                        .FirstOrDefault(p => p.Name == builtInProfile.Name);
+
+                    var validPlatformIds = new HashSet<string>(
+                        (builtInEmulatorProfile?.Platforms ?? Enumerable.Empty<string>())
+                            .Where(id => !string.IsNullOrEmpty(id)),
+                        StringComparer.OrdinalIgnoreCase);
+
+                    if (validPlatformIds.Count == 0)
+                    {
+                        return new List<Platform>();
+                    }
+
+                    var emuPlatforms = Settings.Instance.PlayniteAPI.Emulation.Platforms
+                        .Where(p => p != null && !string.IsNullOrEmpty(p.Id) && validPlatformIds.Contains(p.Id));
                     var validPlatformsInfo = new HashSet<(string, string)>(emuPlatforms.Select(p => (p.Id, p.Name)));
                     return playnite.Database.Platforms.Where(p =>
+                        p != null &&
                         p.SpecificationId != null &&
                         validPlatformsInfo.Contains((p.SpecificationId, p.Name))
                     );
@@ -148,18 +220,30 @@ namespace EmuLibrary.Settings
                 IEnumerable<string> imageExtensionsLower;
                 if (EmulatorProfile is CustomEmulatorProfile)
                 {
-                    imageExtensionsLower = (EmulatorProfile as CustomEmulatorProfile).ImageExtensions?.Where(ext => !ext.IsNullOrEmpty()).Select(ext => ext.Trim().ToLower());
+                    imageExtensionsLower = (EmulatorProfile as CustomEmulatorProfile).ImageExtensions?.Where(ext => !ext.IsNullOrEmpty()).Select(ext => ext.Trim().ToLowerInvariant());
                 }
                 else if (EmulatorProfile is BuiltInEmulatorProfile)
                 {
-                    imageExtensionsLower = Settings.Instance?.PlayniteAPI.Emulation.Emulators.First(e => e.Id == Emulator.BuiltInConfigId).Profiles.FirstOrDefault(p => p.Name == EmulatorProfile.Name).ImageExtensions?.Where(ext => !ext.IsNullOrEmpty()).Select(ext => ext.Trim().ToLower());
+                    var emulator = Emulator;
+                    if (emulator == null)
+                    {
+                        return Enumerable.Empty<string>();
+                    }
+
+                    imageExtensionsLower = Settings.Instance?.PlayniteAPI.Emulation.Emulators
+                        .FirstOrDefault(e => e.Id == emulator.BuiltInConfigId)?
+                        .Profiles?
+                        .FirstOrDefault(p => p.Name == EmulatorProfile.Name)?
+                        .ImageExtensions?
+                        .Where(ext => !ext.IsNullOrEmpty())
+                        .Select(ext => ext.Trim().ToLowerInvariant());
                 }
                 else
                 {
                     throw new NotImplementedException("Unknown emulator profile type.");
                 }
 
-                return imageExtensionsLower;
+                return imageExtensionsLower ?? Enumerable.Empty<string>();
             }
         }
 

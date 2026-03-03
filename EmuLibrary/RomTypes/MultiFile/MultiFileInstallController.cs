@@ -25,42 +25,47 @@ namespace EmuLibrary.RomTypes.MultiFile
 
             _watcherToken = new CancellationTokenSource();
 
-            Task.Run(async () =>
+            StartTrackedInstall(InstallInternalAsync(info, srcPath, dstPath));
+        }
+
+        private async Task InstallInternalAsync(MultiFileGameInfo info, string srcPath, string dstPath)
+        {
+            try
             {
-                try
+                var source = new DirectoryInfo(srcPath);
+                var destination = new DirectoryInfo(dstPath);
+
+                await CreateFileCopier(source, destination).CopyAsync(_watcherToken.Token);
+
+                var installDir = info.DestinationFullBaseDir;
+                var gamePath = ShowFullPaths ? info.DestinationFullPath : info.DestinationPath;
+
+                if (_emuLibrary.Playnite.ApplicationInfo.IsPortable)
                 {
-                    var source = new DirectoryInfo(srcPath);
-                    var destination = new DirectoryInfo(dstPath);
-
-                    await CreateFileCopier(source, destination).CopyAsync(_watcherToken.Token);
-
-                    var installDir = info.DestinationFullBaseDir;
-                    var gamePath = ShowFullPaths ? info.DestinationFullPath : info.DestinationPath;
-
-                    if (_emuLibrary.Playnite.ApplicationInfo.IsPortable)
-                    {
-                        installDir = installDir.Replace(_emuLibrary.Playnite.Paths.ApplicationPath, ExpandableVariables.PlayniteDirectory);
-                        gamePath = gamePath.Replace(_emuLibrary.Playnite.Paths.ApplicationPath, ExpandableVariables.PlayniteDirectory);
-                    }
-
-                    var installationData = new GameInstallationData
-                    {
-                        InstallDirectory = installDir,
-                        Roms = new List<GameRom> { new GameRom(Game.Name, gamePath) }
-                    };
-
-                    InvokeOnInstalled(new GameInstalledEventArgs(installationData));
+                    installDir = installDir.Replace(_emuLibrary.Playnite.Paths.ApplicationPath, ExpandableVariables.PlayniteDirectory);
+                    gamePath = gamePath.Replace(_emuLibrary.Playnite.Paths.ApplicationPath, ExpandableVariables.PlayniteDirectory);
                 }
-                catch (Exception ex)
+
+                var installationData = new GameInstallationData
                 {
-                    if (!(ex is WindowsCopyDialogClosedException))
-                    {
-                        _emuLibrary.Playnite.Notifications.Add(Game.GameId, $"Failed to install {Game.Name}.{Environment.NewLine}{Environment.NewLine}{ex}", NotificationType.Error);
-                    }
-                    Game.IsInstalling = false;
-                    throw;
+                    InstallDirectory = installDir,
+                    Roms = new List<GameRom> { new GameRom(Game.Name, gamePath) }
+                };
+
+                InvokeOnInstalled(new GameInstalledEventArgs(installationData));
+            }
+            catch (Exception ex)
+            {
+                Game.IsInstalling = false;
+
+                if (ex is WindowsCopyDialogClosedException)
+                {
+                    return;
                 }
-            });
+
+                _emuLibrary.Playnite.Notifications.Add(Game.GameId, $"Failed to install {Game.Name}.{Environment.NewLine}{Environment.NewLine}{ex}", NotificationType.Error);
+                _emuLibrary.Logger.Error($"Failed to install game '{Game.Name}'. {ex}");
+            }
         }
     }
 }

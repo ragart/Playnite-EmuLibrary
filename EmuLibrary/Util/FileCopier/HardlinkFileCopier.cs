@@ -46,12 +46,12 @@ namespace EmuLibrary.Util.FileCopier
 
             if (!AreOnSameVolume(linkPath, sourceFile.FullName))
             {
-                throw new Exception($"Failed to create hardlink from \"{linkPath}\" to \"{sourceFile.FullName}\". Hardlinks require source and destination on the same volume.");
+                throw new HardlinkCreationException($"Failed to create hardlink from \"{linkPath}\" to \"{sourceFile.FullName}\". Hardlinks require source and destination on the same volume.");
             }
 
             if (!TryCreateMklink($"/c mklink /H \"{linkPath}\" \"{sourceFile.FullName}\"", out var error))
             {
-                throw new Exception($"Failed to create hardlink from \"{linkPath}\" to \"{sourceFile.FullName}\". {error}");
+                throw new HardlinkCreationException($"Failed to create hardlink from \"{linkPath}\" to \"{sourceFile.FullName}\". {error}");
             }
         }
 
