@@ -189,6 +189,13 @@ namespace EmuLibrary
 
             yield return new MainMenuItem()
             {
+                Action = (arags) => DryRunRemoveGamesMissingSourceFiles(default),
+                Description = "Dry-run remove games with missing source files...",
+                MenuSection = "EmuLibrary"
+            };
+
+            yield return new MainMenuItem()
+            {
                 Action = (arags) => ConvertInstalledGamesToCurrentInstallMethod(true, default),
                 Description = "Convert installed games to selected install method...",
                 MenuSection = "EmuLibrary"
@@ -262,6 +269,11 @@ namespace EmuLibrary
 
         private void RemoveGamesMissingSourceFiles(bool promptUser, CancellationToken ct)
         {
+            RemoveGamesMissingSourceFiles(promptUser, ct, useProgressForInteractive: true, skipDeleteConfirmation: false);
+        }
+
+        private void RemoveGamesMissingSourceFiles(bool promptUser, CancellationToken ct, bool useProgressForInteractive, bool skipDeleteConfirmation)
+        {
             var removeInstalled = Settings.AutoRemoveInstalledGamesMissingFromSource;
             var removeNotInstalled = Settings.AutoRemoveNonInstalledGamesMissingFromSource;
 
@@ -274,13 +286,232 @@ namespace EmuLibrary
                 return;
             }
 
+            List<Game> toRemove;
+            if (promptUser && useProgressForInteractive)
+            {
+                toRemove = null;
+                var analysisResult = Playnite.Dialogs.ActivateGlobalProgress(
+                    (progressArgs) =>
+                    {
+                        progressArgs.IsIndeterminate = true;
+                        progressArgs.Text = "Analyzing games with missing source files...";
+
+                        using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, progressArgs.CancelToken))
+                        {
+                            toRemove = GetGamesMissingSourceFilesToRemove(removeInstalled, removeNotInstalled, linkedCts.Token);
+                        }
+                    },
+                    new GlobalProgressOptions("Preparing remove operation...")
+                    {
+                        Cancelable = true,
+                        IsIndeterminate = true
+                    }
+                );
+
+                if (analysisResult?.Error != null)
+                {
+                    Logger.Error($"Remove analysis failed. {analysisResult.Error}");
+                    Playnite.Dialogs.ShowMessage("Remove analysis failed. Please check logs for details.", "EmuLibrary");
+                    return;
+                }
+
+                if (analysisResult?.Canceled == true)
+                {
+                    Playnite.Dialogs.ShowMessage("Remove operation canceled.", "EmuLibrary");
+                    return;
+                }
+
+                if (toRemove == null)
+                {
+                    Playnite.Dialogs.ShowMessage("Remove analysis produced no result.", "EmuLibrary");
+                    return;
+                }
+            }
+            else
+            {
+                toRemove = GetGamesMissingSourceFilesToRemove(removeInstalled, removeNotInstalled, ct);
+            }
+
+            if (toRemove.Count != 0)
+            {
+                System.Windows.MessageBoxResult res;
+                if (skipDeleteConfirmation)
+                {
+                    res = System.Windows.MessageBoxResult.Yes;
+                }
+                else if (promptUser)
+                    res = Playnite.Dialogs.ShowMessage($"Delete {toRemove.Count} library entries?\n\n(This may take a while, during while Playnite will seem frozen.)", "Confirm deletion", System.Windows.MessageBoxButton.YesNo);
+                else
+                    res = System.Windows.MessageBoxResult.Yes;
+
+                if (res == System.Windows.MessageBoxResult.Yes)
+                {
+                    var gameIds = toRemove.Select(g => g.Id).ToList();
+
+                    Action<CancellationToken, GlobalProgressActionArgs> removeAction = (effectiveToken, progressArgs) =>
+                    {
+                        for (var index = 0; index < gameIds.Count; index++)
+                        {
+                            if (effectiveToken.IsCancellationRequested)
+                                break;
+
+                            var game = Playnite.Database.Games.Get(gameIds[index]);
+                            if (game == null)
+                                continue;
+
+                            if (progressArgs != null)
+                            {
+                                progressArgs.CurrentProgressValue = index + 1;
+                                progressArgs.Text = $"Removing {index + 1}/{gameIds.Count}: {game.Name}";
+                            }
+
+                            try
+                            {
+                                if (game.IsInstalled)
+                                    Playnite.UninstallGame(game.Id);
+                                else
+                                    Playnite.Database.Games.Remove(game);
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Error($"Failed removing game '{game.Name}'. {ex}");
+                            }
+                        }
+                    };
+
+                    if (promptUser)
+                    {
+                        Playnite.Dialogs.ActivateGlobalProgress(
+                            (progressArgs) =>
+                            {
+                                progressArgs.IsIndeterminate = false;
+                                progressArgs.ProgressMaxValue = gameIds.Count;
+
+                                using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, progressArgs.CancelToken))
+                                {
+                                    removeAction(linkedCts.Token, progressArgs);
+                                }
+                            },
+                            new GlobalProgressOptions("Removing games with missing source files...")
+                            {
+                                Cancelable = true,
+                                IsIndeterminate = false
+                            }
+                        );
+                    }
+                    else
+                    {
+                        removeAction(ct, null);
+                    }
+
+                    if (promptUser)
+                    {
+                        Playnite.Dialogs.ShowMessage($"Removed up to {toRemove.Count} library entries.", "EmuLibrary");
+                    }
+                }
+            }
+            else if (promptUser)
+            {
+                Playnite.Dialogs.ShowMessage("Nothing to do.");
+            }
+        }
+
+        private void DryRunRemoveGamesMissingSourceFiles(CancellationToken ct)
+        {
+            var removeInstalled = Settings.AutoRemoveInstalledGamesMissingFromSource;
+            var removeNotInstalled = Settings.AutoRemoveNonInstalledGamesMissingFromSource;
+
+            if (!removeInstalled && !removeNotInstalled)
+            {
+                Playnite.Dialogs.ShowMessage(
+                    "Nothing to do. Enable at least one remove option (installed/non-installed) in Settings first.",
+                    "EmuLibrary Dry-run");
+                return;
+            }
+
+            List<Game> toRemove = null;
+
+            var progressResult = Playnite.Dialogs.ActivateGlobalProgress(
+                (progressArgs) =>
+                {
+                    progressArgs.IsIndeterminate = true;
+                    progressArgs.Text = "Analyzing games with missing source files...";
+
+                    using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, progressArgs.CancelToken))
+                    {
+                        toRemove = GetGamesMissingSourceFilesToRemove(removeInstalled, removeNotInstalled, linkedCts.Token);
+                    }
+                },
+                new GlobalProgressOptions("Dry-run remove analysis...")
+                {
+                    Cancelable = true,
+                    IsIndeterminate = true
+                }
+            );
+
+            if (progressResult?.Error != null)
+            {
+                Logger.Error($"Dry-run remove analysis failed. {progressResult.Error}");
+                Playnite.Dialogs.ShowMessage("Dry-run failed. Please check logs for details.", "EmuLibrary Dry-run");
+                return;
+            }
+
+            if (progressResult?.Canceled == true)
+            {
+                Playnite.Dialogs.ShowMessage("Dry-run canceled.", "EmuLibrary Dry-run");
+                return;
+            }
+
+            if (toRemove == null)
+            {
+                Playnite.Dialogs.ShowMessage("Dry-run produced no result.", "EmuLibrary Dry-run");
+                return;
+            }
+
+            if (toRemove.Count == 0)
+            {
+                Playnite.Dialogs.ShowMessage("Dry run: no games would be removed.", "EmuLibrary Dry-run");
+                return;
+            }
+
+            var names = toRemove.Select(g => g.Name)
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .Take(30)
+                .ToList();
+
+            var details =
+                $"Dry run only. No games were removed.\n\n" +
+                $"Games that would be removed: {toRemove.Count}\n\n" +
+                "Preview:\n" +
+                string.Join("\n", names.Select(name => $"- {name}"));
+
+            if (toRemove.Count > names.Count)
+            {
+                details += $"\n... and {toRemove.Count - names.Count} more.";
+            }
+
+            Playnite.Dialogs.ShowMessage(details, "EmuLibrary Dry-run");
+
+            var removeNowResult = Playnite.Dialogs.ShowMessage(
+                "Remove these games now?",
+                "EmuLibrary Dry-run",
+                System.Windows.MessageBoxButton.YesNo);
+
+            if (removeNowResult == System.Windows.MessageBoxResult.Yes)
+            {
+                RemoveGamesMissingSourceFiles(true, CancellationToken.None, useProgressForInteractive: true, skipDeleteConfirmation: true);
+            }
+        }
+
+        private List<Game> GetGamesMissingSourceFilesToRemove(bool removeInstalled, bool removeNotInstalled, CancellationToken ct)
+        {
             var toRemove = new List<Game>();
             var candidateGames = Playnite.Database.Games.Where(g => g.PluginId == Id).ToList();
 
             foreach (var game in candidateGames)
             {
                 if (ct.IsCancellationRequested)
-                    return;
+                    break;
 
                 if ((game.IsInstalled && !removeInstalled) || (!game.IsInstalled && !removeNotInstalled))
                     continue;
@@ -304,38 +535,7 @@ namespace EmuLibrary
                 toRemove.Add(game);
             }
 
-            if (toRemove.Count != 0)
-            {
-                System.Windows.MessageBoxResult res;
-                if (promptUser)
-                    res = Playnite.Dialogs.ShowMessage($"Delete {toRemove.Count} library entries?\n\n(This may take a while, during while Playnite will seem frozen.)", "Confirm deletion", System.Windows.MessageBoxButton.YesNo);
-                else
-                    res = System.Windows.MessageBoxResult.Yes;
-
-                if (res == System.Windows.MessageBoxResult.Yes)
-                {
-                    var gameIds = toRemove.Select(g => g.Id).ToList();
-                    foreach (var gameId in gameIds)
-                    {
-                        var game = Playnite.Database.Games.Get(gameId);
-                        if (game == null)
-                            continue;
-
-                        if (game.IsInstalled)
-                            Playnite.UninstallGame(game.Id);
-                        else
-                            Playnite.Database.Games.Remove(game);
-                    }
-                    if (promptUser)
-                    {
-                        Playnite.Dialogs.ShowMessage($"Removed {toRemove.Count} library entries.", "EmuLibrary");
-                    }
-                }
-            }
-            else if (promptUser)
-            {
-                Playnite.Dialogs.ShowMessage("Nothing to do.");
-            }
+            return toRemove;
         }
 
         private void QueueBackgroundMaintenance()
