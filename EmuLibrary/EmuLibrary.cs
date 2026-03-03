@@ -42,6 +42,9 @@ namespace EmuLibrary
 
         private readonly Dictionary<RomType, RomTypeScanner> _scanners = new Dictionary<RomType, RomTypeScanner>();
         private int _backgroundMaintenanceRunning;
+        private int _backgroundMaintenancePending;
+        private readonly object _backgroundMaintenanceSync = new object();
+        private CancellationTokenSource _backgroundMaintenanceCts;
 
         public EmuLibrary(IPlayniteAPI api) : base(api)
         {
@@ -591,8 +594,11 @@ namespace EmuLibrary
 
         private void QueueBackgroundMaintenance()
         {
-            if (Interlocked.Exchange(ref _backgroundMaintenanceRunning, 1) == 1)
+            Interlocked.Exchange(ref _backgroundMaintenancePending, 1);
+
+            if (Interlocked.CompareExchange(ref _backgroundMaintenanceRunning, 1, 0) != 0)
             {
+                CancelBackgroundMaintenance();
                 return;
             }
 
@@ -600,11 +606,26 @@ namespace EmuLibrary
             {
                 try
                 {
-                    RemoveGamesMissingSourceFiles(false, CancellationToken.None);
-
-                    if (Settings.AutoConvertInstalledGamesToSelectedInstallMethod)
+                    while (Interlocked.Exchange(ref _backgroundMaintenancePending, 0) == 1)
                     {
-                        ConvertInstalledGamesToCurrentInstallMethod(false, false, CancellationToken.None);
+                        var passToken = CreateBackgroundMaintenanceToken();
+                        try
+                        {
+                            RemoveGamesMissingSourceFiles(false, passToken);
+
+                            if (Settings.AutoConvertInstalledGamesToSelectedInstallMethod)
+                            {
+                                ConvertInstalledGamesToCurrentInstallMethod(false, false, passToken);
+                            }
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            Logger.Debug("Background maintenance pass canceled.");
+                        }
+                        finally
+                        {
+                            ClearBackgroundMaintenanceToken();
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -614,8 +635,40 @@ namespace EmuLibrary
                 finally
                 {
                     Interlocked.Exchange(ref _backgroundMaintenanceRunning, 0);
+
+                    if (Volatile.Read(ref _backgroundMaintenancePending) == 1)
+                    {
+                        QueueBackgroundMaintenance();
+                    }
                 }
             });
+        }
+
+        private CancellationToken CreateBackgroundMaintenanceToken()
+        {
+            lock (_backgroundMaintenanceSync)
+            {
+                _backgroundMaintenanceCts?.Dispose();
+                _backgroundMaintenanceCts = new CancellationTokenSource();
+                return _backgroundMaintenanceCts.Token;
+            }
+        }
+
+        private void CancelBackgroundMaintenance()
+        {
+            lock (_backgroundMaintenanceSync)
+            {
+                _backgroundMaintenanceCts?.Cancel();
+            }
+        }
+
+        private void ClearBackgroundMaintenanceToken()
+        {
+            lock (_backgroundMaintenanceSync)
+            {
+                _backgroundMaintenanceCts?.Dispose();
+                _backgroundMaintenanceCts = null;
+            }
         }
 
         public void ConvertInstalledGamesToCurrentInstallMethod(bool promptUser, CancellationToken ct)
