@@ -26,6 +26,7 @@ namespace EmuLibrary.Settings
 
         public bool ScanGamesInFullScreen { get; set; } = false;
         public bool NotifyOnInstallComplete { get; set; } = false;
+        public bool NotifyOnGameStopped { get; set; } = false;
         public bool AutoRemoveNonInstalledGamesMissingFromSource { get; set; }
         public bool AutoRemoveInstalledGamesMissingFromSource { get; set; }
         public bool UseWindowsCopyDialogInDesktopMode { get; set; } = false;

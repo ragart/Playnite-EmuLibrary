@@ -227,7 +227,12 @@ namespace EmuLibrary
 
         public override void OnGameStopped(OnGameStoppedEventArgs args)
         {
-            Playnite.Dialogs.ShowMessage($"Game \"{args.Game.Name}\" has stopped.", "Game Stopped", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+            if (args.Game.PluginId != PluginId || !Settings.NotifyOnGameStopped)
+            {
+                return;
+            }
+
+            Playnite.Notifications.Add(args.Game.GameId, $"Game \"{args.Game.Name}\" has stopped.", NotificationType.Info);
         }
 
         public override IEnumerable<MainMenuItem> GetMainMenuItems(GetMainMenuItemsArgs args)

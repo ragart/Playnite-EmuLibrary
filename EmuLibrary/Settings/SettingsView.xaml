@@ -193,6 +193,9 @@
                 <CheckBox IsChecked="{Binding NotifyOnInstallComplete, Mode=TwoWay}" Margin="0,0,0,10" >
                     <TextBlock Text="Enable notification upon game install completion" TextWrapping="Wrap"/>
                 </CheckBox>
+                <CheckBox IsChecked="{Binding NotifyOnGameStopped, Mode=TwoWay}" Margin="0,0,0,10" >
+                    <TextBlock Text="Enable notification when game stops" TextWrapping="Wrap"/>
+                </CheckBox>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,10" VerticalAlignment="Center">
                     <TextBlock Text="Install method" VerticalAlignment="Center" Margin="0,0,10,0" />
                     <ComboBox Width="140"
