@@ -22,12 +22,21 @@ namespace EmuLibrary.Settings
 
         public static Settings Instance { get; private set; }
 
+        private InstallMethod _installMethod = InstallMethod.Copy;
+
         public bool ScanGamesInFullScreen { get; set; } = false;
         public bool NotifyOnInstallComplete { get; set; } = false;
         public bool AutoRemoveNonInstalledGamesMissingFromSource { get; set; }
         public bool AutoRemoveInstalledGamesMissingFromSource { get; set; }
         public bool UseWindowsCopyDialogInDesktopMode { get; set; } = false;
         public bool UseWindowsCopyDialogInFullscreenMode { get; set; } = false;
+        public InstallMethod InstallMethod
+        {
+            get => _installMethod;
+            set => SetValue(ref _installMethod, value);
+        }
+        public bool SymlinkFallbackToHardlink { get; set; } = true;
+        public bool AutoConvertInstalledGamesToSelectedInstallMethod { get; set; } = false;
         public bool ShowFullPaths { get; set; } = true;
         public ObservableCollection<EmulatorMapping> Mappings { get; set; }
 

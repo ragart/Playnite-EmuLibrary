@@ -3,12 +3,22 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:settings="clr-namespace:EmuLibrary.Settings"
              x:Class="EmuLibrary.Settings.SettingsView"
              xmlns:sys="clr-namespace:System;assembly=mscorlib" 
              xmlns:elrt="clr-namespace:EmuLibrary.RomTypes" 
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="600"
              Padding="2,0,2,4">
+    <UserControl.Resources>
+        <ObjectDataProvider x:Key="InstallMethodValues"
+                            ObjectType="{x:Type sys:Enum}"
+                            MethodName="GetValues">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="settings:InstallMethod" />
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+    </UserControl.Resources>
     <DockPanel Margin="20">
         <ScrollViewer DockPanel.Dock="Top">
             <StackPanel x:Name="EmulatorSettingsPanel">
@@ -183,10 +193,52 @@
                 <CheckBox IsChecked="{Binding NotifyOnInstallComplete, Mode=TwoWay}" Margin="0,0,0,10" >
                     <TextBlock Text="Enable notification upon game install completion" TextWrapping="Wrap"/>
                 </CheckBox>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10" VerticalAlignment="Center">
+                    <TextBlock Text="Install method" VerticalAlignment="Center" Margin="0,0,10,0" />
+                    <ComboBox Width="140"
+                              ItemsSource="{Binding Source={StaticResource InstallMethodValues}}"
+                              SelectedItem="{Binding InstallMethod, Mode=TwoWay}" />
+                </StackPanel>
+                <CheckBox IsChecked="{Binding SymlinkFallbackToHardlink, Mode=TwoWay}" Margin="0,0,0,10" ToolTip="If enabled, symlink installs will fall back to hardlinks when symlink creation fails.">
+                    <CheckBox.Style>
+                        <Style TargetType="CheckBox">
+                            <Setter Property="IsEnabled" Value="False" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding InstallMethod}" Value="{x:Static settings:InstallMethod.Symlink}">
+                                    <Setter Property="IsEnabled" Value="True" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </CheckBox.Style>
+                    <TextBlock Text="If symlink fails, fallback to hardlink" TextWrapping="Wrap"/>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding AutoConvertInstalledGamesToSelectedInstallMethod, Mode=TwoWay}" Margin="0,0,0,10">
+                    <TextBlock Text="Automatically convert games to selected install method" TextWrapping="Wrap"/>
+                </CheckBox>
                 <CheckBox IsChecked="{Binding UseWindowsCopyDialogInDesktopMode, Mode=TwoWay}" Margin="0,0,0,10" ToolTip="Game installs will be performed natively by Windows. The Copy&#x0a;File dialog box will be displayed to show installation progress.">
+                    <CheckBox.Style>
+                        <Style TargetType="CheckBox">
+                            <Setter Property="IsEnabled" Value="False" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding InstallMethod}" Value="{x:Static settings:InstallMethod.Copy}">
+                                    <Setter Property="IsEnabled" Value="True" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </CheckBox.Style>
                     <TextBlock Text="Show Windows copy dialog in desktop mode" TextWrapping="Wrap"/>
                 </CheckBox>
                 <CheckBox IsChecked="{Binding UseWindowsCopyDialogInFullscreenMode, Mode=TwoWay}" Margin="0,0,0,10" ToolTip="Game installs will be performed natively by Windows. The Copy&#x0a;File dialog box will be displayed to show installation progress.&#x0a;Please note that enabling this option may cause issues with focus&#x0a;in fullscreen mode.">
+                    <CheckBox.Style>
+                        <Style TargetType="CheckBox">
+                            <Setter Property="IsEnabled" Value="False" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding InstallMethod}" Value="{x:Static settings:InstallMethod.Copy}">
+                                    <Setter Property="IsEnabled" Value="True" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </CheckBox.Style>
                     <TextBlock Text="Show Windows copy dialog in fullscreen mode" TextWrapping="Wrap"/>
                 </CheckBox>
             </StackPanel>
